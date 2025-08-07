@@ -1,0 +1,7 @@
+[theme]
+base = "dark"
+primaryColor = "#10b981"       # Cute green
+backgroundColor = "#0f172a"    # Soft navy
+secondaryBackgroundColor = "#1e293b"
+textColor = "#f0fdf4"          # Soft white
+font = "sans serif"
