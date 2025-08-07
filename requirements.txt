@@ -2,3 +2,4 @@ streamlit
 wikipedia 
 SpeechRecognition
 pydub
+streamlit_webrtc
