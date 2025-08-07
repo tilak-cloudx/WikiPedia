@@ -4,7 +4,6 @@ import speech_recognition as sr
 import tempfile
 import os
 import re
-from pydub import AudioSegment
 from st_audiorec import st_audiorec
 
 # --- Page Config ---
@@ -95,17 +94,17 @@ def transcribe_audio(audio_path):
 # --- Text Input ---
 user_input = st.text_input("💬 Ask me anything... curious cat 🐱:")
 
-# --- Voice Upload ---
+# --- Voice Upload (No pydub needed) ---
 audio_bytes = st.file_uploader("📁 Or upload a voice message (WAV/MP3):", type=["wav", "mp3"])
 if audio_bytes is not None:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
-        audio = AudioSegment.from_file(audio_bytes)
-        audio.export(tmp_file.name, format="wav")
-        transcript = transcribe_audio(tmp_file.name)
-        os.unlink(tmp_file.name)
-        if transcript:
-            st.success(f"You said: {transcript}")
-            user_input = transcript
+        tmp_file.write(audio_bytes.read())
+        tmp_file_path = tmp_file.name
+    transcript = transcribe_audio(tmp_file_path)
+    os.unlink(tmp_file_path)
+    if transcript:
+        st.success(f"You said: {transcript}")
+        user_input = transcript
 
 # --- Live Mic Input ---
 st.markdown("### 🎙️ Or talk to the bot live:")
