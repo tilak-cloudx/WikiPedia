@@ -1,5 +1,5 @@
 streamlit
 wikipedia
-speechrecognition
-pydub
-streamlit-mic-recorder
+SpeechRecognition
+PyPDF2
+pillow
