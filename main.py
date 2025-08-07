@@ -6,14 +6,12 @@ import os
 import re
 from st_audiorec import st_audiorec
 
-# --- Page Config ---
 st.set_page_config(
     page_title="Wikipedia Chatbot 🧠",
     page_icon="📚",
     layout="centered"
 )
 
-# --- Custom Font and Style ---
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500&display=swap');
@@ -44,7 +42,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- Header ---
 st.markdown("""
     <div style='text-align: center; padding-bottom: 10px;'>
         <h1 style='font-size: 2.8rem;'>📚 Wikipedia Chatbot</h1>
@@ -52,17 +49,14 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# --- Chat State ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- Preprocess User Query ---
 def clean_query(raw):
     raw = raw.lower()
     raw = re.sub(r"\b(who is|what is|tell me about|please|explain|define)\b", "", raw)
     return raw.strip()
 
-# --- Wikipedia Fetch ---
 def get_wikipedia_summary_and_image(query):
     try:
         results = wikipedia.search(query)
@@ -79,7 +73,6 @@ def get_wikipedia_summary_and_image(query):
     except Exception:
         return "⚠️ Oops, something went wrong while searching Wikipedia.", None
 
-# --- Transcribe Audio ---
 def transcribe_audio(audio_path):
     recognizer = sr.Recognizer()
     with sr.AudioFile(audio_path) as source:
@@ -91,22 +84,9 @@ def transcribe_audio(audio_path):
     except sr.RequestError:
         return "Speech recognition service is unavailable."
 
-# --- Text Input ---
 user_input = st.text_input("💬 Ask me anything... curious cat 🐱:")
 
-# --- Voice Upload (No pydub needed) ---
-audio_bytes = st.file_uploader("📁 Or upload a voice message (WAV/MP3):", type=["wav", "mp3"])
-if audio_bytes is not None:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
-        tmp_file.write(audio_bytes.read())
-        tmp_file_path = tmp_file.name
-    transcript = transcribe_audio(tmp_file_path)
-    os.unlink(tmp_file_path)
-    if transcript:
-        st.success(f"You said: {transcript}")
-        user_input = transcript
-
-# --- Live Mic Input ---
+# Live Mic
 st.markdown("### 🎙️ Or talk to the bot live:")
 wav_audio_data = st_audiorec()
 if wav_audio_data is not None:
@@ -119,7 +99,7 @@ if wav_audio_data is not None:
         st.success(f"You said: {transcript}")
         user_input = transcript
 
-# --- Final Query Handling ---
+# Final Query Handling
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
     cleaned = clean_query(user_input)
@@ -128,13 +108,12 @@ if user_input:
     if image_url:
         st.image(image_url, use_column_width=True)
 
-# --- Chat History Display ---
+# Chat History
 for msg in st.session_state.messages:
     role_class = "user" if msg["role"] == "user" else "bot"
     speaker = "You" if msg["role"] == "user" else "Bot"
     st.markdown(f"<div class='message-box {role_class}'><strong>{speaker}:</strong> {msg['content']}</div>", unsafe_allow_html=True)
 
-# --- Footer ---
 st.markdown("""
     <div class='footer'>
         Made with ❤️ using <a href='https://streamlit.io' target='_blank'>Streamlit</a> and <a href='https://pypi.org/project/wikipedia/' target='_blank'>Wikipedia API</a>.
