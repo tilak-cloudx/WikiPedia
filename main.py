@@ -4,8 +4,7 @@ import speech_recognition as sr
 import tempfile
 import os
 from pydub import AudioSegment
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, ClientSettings
-import av
+from st_audiorec import st_audiorec
 
 # --- Page Config ---
 st.set_page_config(
@@ -74,10 +73,10 @@ def get_wikipedia_summary_and_image(query):
     except Exception:
         return "⚠️ Oops, something went wrong while searching Wikipedia.", None
 
-# --- Voice Input Processing ---
-def transcribe_audio(audio_file):
+# --- Transcription ---
+def transcribe_audio(audio_path):
     recognizer = sr.Recognizer()
-    with sr.AudioFile(audio_file) as source:
+    with sr.AudioFile(audio_path) as source:
         audio = recognizer.record(source)
     try:
         return recognizer.recognize_google(audio)
@@ -90,53 +89,32 @@ def transcribe_audio(audio_file):
 user_input = st.text_input("💬 Ask me anything... curious cat 🐱:")
 
 # --- Voice Upload ---
-audio_bytes = st.file_uploader("🎤 Or upload a voice message (WAV/MP3):", type=["wav", "mp3"])
+audio_bytes = st.file_uploader("📁 Or upload a voice message (WAV/MP3):", type=["wav", "mp3"])
 if audio_bytes is not None:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
         audio = AudioSegment.from_file(audio_bytes)
         audio.export(tmp_file.name, format="wav")
         transcript = transcribe_audio(tmp_file.name)
         os.unlink(tmp_file.name)
-
         if transcript:
             st.success(f"You said: {transcript}")
             user_input = transcript
 
 # --- Live Mic Input ---
 st.markdown("### 🎙️ Or talk to the bot live:")
+wav_audio_data = st_audiorec()
+if wav_audio_data is not None:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
+        tmp_file.write(wav_audio_data)
+        tmp_file_path = tmp_file.name
 
-class AudioProcessor:
-    def __init__(self):
-        self.recognizer = sr.Recognizer()
+    transcript = transcribe_audio(tmp_file_path)
+    os.unlink(tmp_file_path)
+    if transcript:
+        st.success(f"You said: {transcript}")
+        user_input = transcript
 
-    def recv(self, frame):
-        audio_data = frame.to_ndarray().flatten().tobytes()
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_wav:
-            tmp_wav.write(audio_data)
-            tmp_wav.close()
-            try:
-                with sr.AudioFile(tmp_wav.name) as source:
-                    audio = self.recognizer.record(source)
-                    text = self.recognizer.recognize_google(audio)
-                    st.session_state.messages.append({"role": "user", "content": text})
-                    summary, image = get_wikipedia_summary_and_image(text)
-                    st.session_state.messages.append({"role": "bot", "content": summary})
-            except Exception:
-                st.error("⚠️ Could not process the audio.")
-        return av.AudioFrame.from_ndarray(frame.to_ndarray(), layout="mono")
-
-webrtc_streamer(
-    key="live-mic",
-    mode=WebRtcMode.SENDONLY,
-    in_audio=True,
-    client_settings=ClientSettings(
-        media_stream_constraints={"audio": True, "video": False},
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
-    ),
-    audio_processor_factory=AudioProcessor
-)
-
-# --- Handle Input (text or transcript) ---
+# --- Handle Query ---
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
     summary, image_url = get_wikipedia_summary_and_image(user_input)
