@@ -4,6 +4,8 @@ import speech_recognition as sr
 import tempfile
 import os
 from pydub import AudioSegment
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, ClientSettings
+import av
 
 # --- Page Config ---
 st.set_page_config(
@@ -100,13 +102,46 @@ if audio_bytes is not None:
             st.success(f"You said: {transcript}")
             user_input = transcript
 
-# --- Handle Input ---
+# --- Live Mic Input ---
+st.markdown("### 🎙️ Or talk to the bot live:")
+
+class AudioProcessor:
+    def __init__(self):
+        self.recognizer = sr.Recognizer()
+
+    def recv(self, frame):
+        audio_data = frame.to_ndarray().flatten().tobytes()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_wav:
+            tmp_wav.write(audio_data)
+            tmp_wav.close()
+            try:
+                with sr.AudioFile(tmp_wav.name) as source:
+                    audio = self.recognizer.record(source)
+                    text = self.recognizer.recognize_google(audio)
+                    st.session_state.messages.append({"role": "user", "content": text})
+                    summary, image = get_wikipedia_summary_and_image(text)
+                    st.session_state.messages.append({"role": "bot", "content": summary})
+            except Exception:
+                st.error("⚠️ Could not process the audio.")
+        return av.AudioFrame.from_ndarray(frame.to_ndarray(), layout="mono")
+
+webrtc_streamer(
+    key="live-mic",
+    mode=WebRtcMode.SENDONLY,
+    in_audio=True,
+    client_settings=ClientSettings(
+        media_stream_constraints={"audio": True, "video": False},
+        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+    ),
+    audio_processor_factory=AudioProcessor
+)
+
+# --- Handle Input (text or transcript) ---
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
     summary, image_url = get_wikipedia_summary_and_image(user_input)
     st.session_state.messages.append({"role": "bot", "content": summary})
 
-    # Show preview image (if available)
     if image_url:
         st.image(image_url, use_column_width=True)
 
