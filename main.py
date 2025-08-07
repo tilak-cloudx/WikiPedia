@@ -3,6 +3,7 @@ import wikipedia
 import speech_recognition as sr
 import tempfile
 import os
+import re
 from pydub import AudioSegment
 from st_audiorec import st_audiorec
 
@@ -52,11 +53,17 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# --- Initialize Chat History ---
+# --- Chat State ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- Wikipedia Summary + Image ---
+# --- Preprocess User Query ---
+def clean_query(raw):
+    raw = raw.lower()
+    raw = re.sub(r"\b(who is|what is|tell me about|please|explain|define)\b", "", raw)
+    return raw.strip()
+
+# --- Wikipedia Fetch ---
 def get_wikipedia_summary_and_image(query):
     try:
         results = wikipedia.search(query)
@@ -73,7 +80,7 @@ def get_wikipedia_summary_and_image(query):
     except Exception:
         return "⚠️ Oops, something went wrong while searching Wikipedia.", None
 
-# --- Transcription ---
+# --- Transcribe Audio ---
 def transcribe_audio(audio_path):
     recognizer = sr.Recognizer()
     with sr.AudioFile(audio_path) as source:
@@ -107,28 +114,26 @@ if wav_audio_data is not None:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
         tmp_file.write(wav_audio_data)
         tmp_file_path = tmp_file.name
-
     transcript = transcribe_audio(tmp_file_path)
     os.unlink(tmp_file_path)
     if transcript:
         st.success(f"You said: {transcript}")
         user_input = transcript
 
-# --- Handle Query ---
+# --- Final Query Handling ---
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
-    summary, image_url = get_wikipedia_summary_and_image(user_input)
+    cleaned = clean_query(user_input)
+    summary, image_url = get_wikipedia_summary_and_image(cleaned)
     st.session_state.messages.append({"role": "bot", "content": summary})
-
     if image_url:
         st.image(image_url, use_column_width=True)
 
-# --- Display Chat ---
+# --- Chat History Display ---
 for msg in st.session_state.messages:
-    if msg["role"] == "user":
-        st.markdown(f"<div class='message-box user'><strong>You:</strong> {msg['content']}</div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div class='message-box bot'><strong>Bot:</strong> {msg['content']}</div>", unsafe_allow_html=True)
+    role_class = "user" if msg["role"] == "user" else "bot"
+    speaker = "You" if msg["role"] == "user" else "Bot"
+    st.markdown(f"<div class='message-box {role_class}'><strong>{speaker}:</strong> {msg['content']}</div>", unsafe_allow_html=True)
 
 # --- Footer ---
 st.markdown("""
