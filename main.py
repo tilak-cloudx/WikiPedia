@@ -84,10 +84,10 @@ def transcribe_audio(audio_file):
     except sr.RequestError:
         return "Speech recognition service is unavailable."
 
-# --- User Text Input ---
+# --- Text Input ---
 user_input = st.text_input("💬 Ask me anything... curious cat 🐱:")
 
-# --- Voice Input Upload ---
+# --- Voice Upload ---
 audio_bytes = st.file_uploader("🎤 Or upload a voice message (WAV/MP3):", type=["wav", "mp3"])
 if audio_bytes is not None:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
@@ -97,4 +97,29 @@ if audio_bytes is not None:
         os.unlink(tmp_file.name)
 
         if transcript:
-            st.success(f"You s
+            st.success(f"You said: {transcript}")
+            user_input = transcript
+
+# --- Handle Input ---
+if user_input:
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    summary, image_url = get_wikipedia_summary_and_image(user_input)
+    st.session_state.messages.append({"role": "bot", "content": summary})
+
+    # Show preview image (if available)
+    if image_url:
+        st.image(image_url, use_column_width=True)
+
+# --- Display Chat ---
+for msg in st.session_state.messages:
+    if msg["role"] == "user":
+        st.markdown(f"<div class='message-box user'><strong>You:</strong> {msg['content']}</div>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"<div class='message-box bot'><strong>Bot:</strong> {msg['content']}</div>", unsafe_allow_html=True)
+
+# --- Footer ---
+st.markdown("""
+    <div class='footer'>
+        Made with ❤️ using <a href='https://streamlit.io' target='_blank'>Streamlit</a> and <a href='https://pypi.org/project/wikipedia/' target='_blank'>Wikipedia API</a>.
+    </div>
+""", unsafe_allow_html=True)
