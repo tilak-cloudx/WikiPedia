@@ -6,9 +6,10 @@ import base64
 
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
-# CSS for mic + plus icons inside input
+# CSS styling
 st.markdown("""
     <style>
+    /* Chat input wrapper */
     .chat-input-wrapper {
         position: relative;
         width: 100%;
@@ -35,7 +36,8 @@ st.markdown("""
     input[type="file"] {
         display: none;
     }
-    /* Footer style */
+
+    /* Footer style with black background */
     .footer {
         position: fixed;
         bottom: 0;
@@ -43,10 +45,10 @@ st.markdown("""
         width: 100%;
         text-align: center;
         padding: 8px;
-        background-color: #f9f9f9;
+        background-color: #000; /* black background */
         font-size: 14px;
-        color: #555;
-        border-top: 1px solid #ddd;
+        color: #fff; /* white text */
+        border-top: 1px solid #222;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -97,7 +99,7 @@ if user_input.strip():
     except wikipedia.exceptions.PageError:
         st.error("Sorry, I couldn't find anything on Wikipedia for that topic.")
 
-# Footer
+# Footer with black background
 st.markdown("""
     <div class="footer">
         Made with ❤️ by <b>Likhiii</b>
