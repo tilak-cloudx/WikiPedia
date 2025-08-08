@@ -1,98 +1,105 @@
 import streamlit as st
 import wikipedia
-import speech_recognition as sr
-from PIL import Image
-import io
+from gtts import gTTS
+import tempfile
+import base64
 
-# --- Page Config ---
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
-# --- Custom CSS ---
+# CSS for mic + plus icons inside input
 st.markdown("""
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .stTextInput input {
-            border: 2px solid #ef4444;
-            border-radius: 8px;
-        }
-        .bot-message {
-            background-color: #111827;
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 10px;
-            color: white;
-        }
-        .footer {
-            text-align: center;
-            color: #aaa;
-            font-size: 12px;
-            margin-top: 5px;
-        }
-        .mic-button, .upload-button {
-            display: inline-block;
-            vertical-align: middle;
-            margin-left: 6px;
-            cursor: pointer;
-        }
+    .chat-input-wrapper {
+        position: relative;
+        width: 100%;
+    }
+    .chat-icons {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        gap: 6px;
+    }
+    .icon-btn {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        color: #555;
+        padding: 4px;
+    }
+    .icon-btn:hover {
+        color: black;
+    }
+    input[type="file"] {
+        display: none;
+    }
+    /* Footer style */
+    .footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        padding: 8px;
+        background-color: #f9f9f9;
+        font-size: 14px;
+        color: #555;
+        border-top: 1px solid #ddd;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# --- Session State ---
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# --- Speech-to-Text ---
-def recognize_speech():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.info("🎙 Listening... Speak now.")
-        audio = recognizer.listen(source)
-    try:
-        text = recognizer.recognize_google(audio)
-        st.success(f"✅ You said: {text}")
-        return text
-    except sr.UnknownValueError:
-        st.error("Sorry, I couldn't understand.")
-    except sr.RequestError:
-        st.error("Speech recognition service error.")
-    return ""
-
-# --- Wikipedia Search ---
-def search_wikipedia(query):
-    try:
-        summary = wikipedia.summary(query, sentences=2)
-        return summary
-    except wikipedia.exceptions.DisambiguationError as e:
-        return f"Your query is ambiguous. Suggestions: {', '.join(e.options[:5])}"
-    except wikipedia.exceptions.PageError:
-        return "No page found for your query."
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-# --- Header ---
+# Title
 st.markdown("<h1 style='text-align:center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
 
-# --- Input Row ---
-col1, col2, col3 = st.columns([6, 1, 1])
-with col1:
-    user_input = st.text_input("", placeholder="Ask me anything from Wikipedia...", label_visibility="collapsed")
-with col2:
-    if st.button("🎤", help="Speak"):
-        spoken_text = recognize_speech()
-        if spoken_text:
-            user_input = spoken_text
-with col3:
-    uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png", "txt", "pdf"], label_visibility="collapsed")
+# Chat input with icons
+st.markdown('<div class="chat-input-wrapper">', unsafe_allow_html=True)
+user_input = st.text_input(
+    "Ask something...",
+    key="chat_input",
+    label_visibility="collapsed",
+    placeholder="Type your question and press Enter..."
+)
+st.markdown("""
+    <div class="chat-icons">
+        <button class="icon-btn" onclick="alert('🎤 Listening...')">🎤</button>
+        <label for="file-upload" class="icon-btn">➕</label>
+        <input id="file-upload" type="file" accept=".jpg,.jpeg,.png,.txt,.pdf">
+    </div>
+""", unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
-# --- Process Query ---
-if user_input:
-    bot_reply = search_wikipedia(user_input)
-    st.session_state.messages.append({"user": user_input, "bot": bot_reply})
+# Process input
+if user_input.strip():
+    try:
+        summary = wikipedia.summary(user_input, sentences=2)
+        st.write(f"**🤖 Bot:** {summary}")
 
-# --- Chat Display ---
-for msg in st.session_state.messages:
-    st.markdown(f"**👤 You:** {msg['user']}")
-    st.markdown(f"<div class='bot-message'>🤖 <b>Bot:</b> {msg['bot']}</div>", unsafe_allow_html=True)
-    st.markdown("<div class='footer'>Made with ❤️ by Likhiii</div>", unsafe_allow_html=True)
+        # Generate TTS
+        tts = gTTS(text=summary, lang='en', tld='co.in')
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
+            tts.save(tmp_file.name)
+
+            # Auto-play audio without play button
+            audio_bytes = open(tmp_file.name, "rb").read()
+            audio_base64 = base64.b64encode(audio_bytes).decode()
+            audio_html = f"""
+                <audio autoplay>
+                    <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                </audio>
+            """
+            st.markdown(audio_html, unsafe_allow_html=True)
+
+    except wikipedia.exceptions.DisambiguationError as e:
+        st.error(f"Your query was too broad. Try one of these: {e.options[:5]}")
+    except wikipedia.exceptions.PageError:
+        st.error("Sorry, I couldn't find anything on Wikipedia for that topic.")
+
+# Footer
+st.markdown("""
+    <div class="footer">
+        Made with ❤️ by <b>Likhiii</b>
+    </div>
+""", unsafe_allow_html=True)
