@@ -98,49 +98,21 @@ body {
 
 /* + upload button styles */
 #upload-label {
-    font-size: 28px;
+    font-size: 36px;
     cursor: pointer;
     color: #ff00de;
     user-select: none;
     line-height: 1;
-    padding-left: 6px;
+    padding-left: 10px;
     vertical-align: middle;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+#upload-label:hover {
+    color: #ff4eff;
 }
 #file-uploader {
     display: none;
-}
-
-/* Crazy reveal animation */
-@keyframes crazyReveal {
-    0% {
-        transform: scale(1) rotate(0deg);
-        box-shadow: 0 0 0px orange;
-        filter: drop-shadow(0 0 0px orange);
-    }
-    25% {
-        transform: scale(1.1) rotate(5deg);
-        box-shadow: 0 0 20px orange;
-        filter: drop-shadow(0 0 10px orange);
-    }
-    50% {
-        transform: scale(1.15) rotate(-5deg);
-        box-shadow: 0 0 40px orange;
-        filter: drop-shadow(0 0 20px orange);
-    }
-    75% {
-        transform: scale(1.1) rotate(5deg);
-        box-shadow: 0 0 20px orange;
-        filter: drop-shadow(0 0 10px orange);
-    }
-    100% {
-        transform: scale(1) rotate(0deg);
-        box-shadow: 0 0 0px orange;
-        filter: drop-shadow(0 0 0px orange);
-    }
-}
-.crazy-reveal {
-    animation: crazyReveal 3s ease-in-out forwards;
-    border-radius: 12px;
 }
 
 /* Responsive */
@@ -201,14 +173,14 @@ if st.session_state.music_on:
 # --- Title ---
 st.markdown("<h1 style='text-align:center;'>📚 Ask Meh Anything Buddy...</h1>", unsafe_allow_html=True)
 
-# --- Input and upload button ---
+# --- Input and + upload button ---
 col1, col2 = st.columns([0.85, 0.15])
 
 with col1:
     user_input = st.text_input("Ask something...", placeholder="Type your question and press Enter...", key="input_text")
 
 with col2:
-    uploaded_files = st.file_uploader("", accept_multiple_files=True, type=["png", "jpg", "jpeg", "pdf", "txt"], key="file-uploader")
+    uploaded_files = st.file_uploader("", accept_multiple_files=True, type=["png", "jpg", "jpeg", "pdf", "txt"], key="file-uploader", label_visibility="collapsed")
     st.markdown("""
     <label for="file-uploader" id="upload-label" title="Upload files or images">+</label>
     """, unsafe_allow_html=True)
@@ -253,27 +225,19 @@ if user_input:
 
     st.session_state.messages.append(("bot", summary))
 
-# --- Display chat history with animation on last bot message ---
-for i, (role, text) in enumerate(st.session_state.messages):
+# --- Display chat history ---
+for role, text in st.session_state.messages:
     if role == "user":
         st.markdown(f"<div class='chat-bubble user-bubble'>{text}</div>", unsafe_allow_html=True)
     else:
-        # Add crazy-reveal only to last bot message to animate it
-        crazy_class = ""
-        # Find last bot message index:
-        last_bot_index = max(idx for idx, (r, _) in enumerate(st.session_state.messages) if r == "bot")
-        if i == last_bot_index:
-            crazy_class = "crazy-reveal typewriter"
-        else:
-            crazy_class = "bot-bubble"
-        st.markdown(f"<div class='chat-bubble {crazy_class}'>{text}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='chat-bubble bot-bubble typewriter'>{text}</div>", unsafe_allow_html=True)
 
         # Show image only for last bot message if exists
-        if i == last_bot_index and 'image_url' in locals() and image_url:
+        if 'image_url' in locals() and image_url:
             st.image(image_url, width=300)
 
         # Play voice only for last bot message
-        if i == last_bot_index:
+        if role == "bot":
             tts = gTTS(text=text, lang='en')
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
                 tts.save(tmp_file.name)
