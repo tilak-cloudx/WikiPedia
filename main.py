@@ -5,29 +5,31 @@ import tempfile
 import base64
 import time
 
-# --- Page Config ---
+# --- Page config ---
 st.set_page_config(page_title="Ask Meh Anything Buddy...", page_icon="📚", layout="centered")
 
 # --- Sidebar ---
 with st.sidebar:
     st.markdown("<h2>💖 About Us</h2>", unsafe_allow_html=True)
     st.write("""
-    Welcome to **Ask Meh Anything Buddy...** 💕  
-    I'm your friendly bot that answers your questions from Wikipedia in the most adorable way possible.  
+    Welcome to **Ask Meh Anything Buddy...**!  
+    I'm your friendly bot that answers your questions from Wikipedia in the most adorable way possible 💕  
     You can listen to my answers, see images, and enjoy falling sakura petals 🌸.
     """)
+
     st.markdown("<h2>📌 User Guidance</h2>", unsafe_allow_html=True)
     st.write("""
     1. Type your question in the box.  
     2. Press **Enter** to ask.  
-    3. Enjoy pastel bubbles, music 🎶, and images.  
+    3. Enjoy the pastel bubbles, music 🎶, and images.  
     4. Toggle music on/off from the button.  
     5. Sit back and enjoy the cuteness 💫.
     """)
+
     st.markdown("---")
     st.markdown("Made with ❤️ using Streamlit & Wikipedia API")
 
-# --- Session State ---
+# --- Session state ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "music_on" not in st.session_state:
@@ -35,7 +37,7 @@ if "music_on" not in st.session_state:
 if "input_text" not in st.session_state:
     st.session_state.input_text = ""
 
-# --- CSS Styles ---
+# --- CSS for background, petals & chat style ---
 st.markdown("""
 <style>
 body {
@@ -48,6 +50,8 @@ body {
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
+
+/* Sakura petals */
 .petal {
     position: fixed;
     top: -10px;
@@ -61,6 +65,8 @@ body {
     0% { transform: translateY(0) rotate(0deg); }
     100% { transform: translateY(110vh) rotate(360deg); }
 }
+
+/* Chat bubbles */
 .chat-bubble {
     padding: 10px 15px;
     border-radius: 20px;
@@ -97,16 +103,17 @@ body {
 </style>
 """, unsafe_allow_html=True)
 
-# --- Petals Animation ---
+# --- Create multiple petals ---
 petals_html = "".join([
     f'<div class="petal" style="left:{i*10}%; width:10px; height:10px; animation-duration:{4+i%5}s; animation-delay:{i%3}s;"></div>'
     for i in range(10)
 ])
 st.markdown(petals_html, unsafe_allow_html=True)
 
-# --- Music Toggle ---
+# --- Music toggle ---
 if st.button("🎶 Toggle Music"):
     st.session_state.music_on = not st.session_state.music_on
+
 if st.session_state.music_on:
     music_html = """
         <audio autoplay loop>
@@ -115,7 +122,7 @@ if st.session_state.music_on:
     """
     st.markdown(music_html, unsafe_allow_html=True)
 
-# --- Display Message Function ---
+# --- Function to display chat bubbles ---
 def display_message(role, text):
     if role == "user":
         st.markdown(f"""
@@ -135,25 +142,22 @@ def display_message(role, text):
 # --- Title ---
 st.markdown("<h1 style='text-align:center;'>📚 Ask Meh Anything Buddy...</h1>", unsafe_allow_html=True)
 
-# --- Input Box ---
-user_input = st.text_input(
-    "Ask something...",
-    placeholder="Type your question and press Enter...",
-    value=st.session_state.input_text,
-    key="text_box"
-)
+# --- User Input ---
+user_input = st.text_input("Ask something...", value=st.session_state.input_text, key="input_text")
 
-# --- Handle User Query ---
-if user_input and user_input != st.session_state.input_text:
-    st.session_state.input_text = user_input  # remember last input
+# --- When user submits ---
+if user_input:
+    # Save & display user message
     st.session_state.messages.append(("user", user_input))
     display_message("user", user_input)
 
-    with st.spinner("Bot is typing..."):
+    # Bot "typing"
+    with st.spinner("Buddy is thinking..."):
         time.sleep(1)
         try:
             page = wikipedia.page(user_input)
             summary = page.summary[:500] + "..."
+            # Find a good image
             image_url = None
             for img in page.images:
                 if img.lower().endswith((".jpg", ".jpeg", ".png")) and "svg" not in img.lower():
@@ -166,12 +170,15 @@ if user_input and user_input != st.session_state.input_text:
             summary = "Sorry, I couldn't find anything on Wikipedia for that topic."
             image_url = None
 
+    # Add bot message to history
     st.session_state.messages.append(("bot", summary))
     display_message("bot", summary)
 
+    # Show image if found
     if image_url:
         st.image(image_url, width=300)
 
+    # Voice output
     tts = gTTS(text=summary, lang='en', tld='co.in')
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
         tts.save(tmp_file.name)
@@ -184,10 +191,9 @@ if user_input and user_input != st.session_state.input_text:
         """
         st.markdown(audio_html, unsafe_allow_html=True)
 
-    # Reset text for next question
+    # Clear input box for next question without rerun
     st.session_state.input_text = ""
-    st.experimental_rerun()
 
-# --- Show Chat History ---
+# --- Display chat history ---
 for role, text in st.session_state.messages:
     display_message(role, text)
