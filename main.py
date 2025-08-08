@@ -1,105 +1,117 @@
 import streamlit as st
 import wikipedia
-from gtts import gTTS
-import tempfile
-import base64
+import speech_recognition as sr
+import pyttsx3
+from io import BytesIO
 
+# --- Page config ---
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
-# CSS for mic + plus icons inside input
+# --- Custom CSS ---
 st.markdown("""
     <style>
-    .chat-input-wrapper {
-        position: relative;
-        width: 100%;
-    }
-    .chat-icons {
-        position: absolute;
-        right: 8px;
-        top: 50%;
-        transform: translateY(-50%);
-        display: flex;
-        gap: 6px;
-    }
-    .icon-btn {
-        background: none;
-        border: none;
-        font-size: 18px;
-        cursor: pointer;
-        color: #555;
-        padding: 4px;
-    }
-    .icon-btn:hover {
-        color: black;
-    }
-    input[type="file"] {
-        display: none;
-    }
-    /* Footer style */
-    .footer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        text-align: center;
-        padding: 8px;
-        background-color: #f9f9f9;
-        font-size: 14px;
-        color: #555;
-        border-top: 1px solid #ddd;
-    }
+        .main {
+            background-color: #0f172a;
+            color: white;
+        }
+        .stTextInput>div>div>input {
+            background-color: transparent;
+            color: white;
+            border: 1px solid #ef4444;
+            border-radius: 6px;
+            padding-right: 60px;
+        }
+        .icon-btn {
+            position: absolute;
+            right: 35px;
+            top: 7px;
+            cursor: pointer;
+        }
+        .file-btn {
+            position: absolute;
+            right: 5px;
+            top: 7px;
+            cursor: pointer;
+        }
+        .love-footer {
+            text-align: center;
+            font-size: 13px;
+            color: #bbb;
+            margin-top: 10px;
+        }
+        .love-footer span {
+            color: red;
+        }
     </style>
 """, unsafe_allow_html=True)
 
-# Title
+# --- TTS engine ---
+engine = pyttsx3.init()
+
+def speak_text(text):
+    engine.say(text)
+    engine.runAndWait()
+
+# --- Mic input ---
+def mic_input():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        st.toast("🎙 Listening...")
+        audio = recognizer.listen(source)
+        try:
+            text = recognizer.recognize_google(audio)
+            return text
+        except:
+            return ""
+
+# --- File upload handler ---
+def handle_file_upload(file):
+    if file:
+        st.success(f"📁 Uploaded: {file.name}")
+        # In real app: process file here
+
+# --- Chat state ---
+if "chat" not in st.session_state:
+    st.session_state.chat = []
+
+# --- Title ---
 st.markdown("<h1 style='text-align:center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
 
-# Chat input with icons
-st.markdown('<div class="chat-input-wrapper">', unsafe_allow_html=True)
-user_input = st.text_input(
-    "Ask something...",
-    key="chat_input",
-    label_visibility="collapsed",
-    placeholder="Type your question and press Enter..."
-)
-st.markdown("""
-    <div class="chat-icons">
-        <button class="icon-btn" onclick="alert('🎤 Listening...')">🎤</button>
-        <label for="file-upload" class="icon-btn">➕</label>
-        <input id="file-upload" type="file" accept=".jpg,.jpeg,.png,.txt,.pdf">
-    </div>
-""", unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
+# --- Input container with icons ---
+col1, col2 = st.columns([8, 1])
+with col1:
+    user_input = st.text_input("Ask me something from Wikipedia", label_visibility="collapsed")
+with col2:
+    mic_pressed = st.button("🎤")
+    file_uploaded = st.file_uploader("", type=["jpg", "jpeg", "png", "txt", "pdf"], label_visibility="collapsed")
 
-# Process input
-if user_input.strip():
+if mic_pressed:
+    spoken = mic_input()
+    if spoken:
+        user_input = spoken
+        st.experimental_rerun()
+
+if file_uploaded:
+    handle_file_upload(file_uploaded)
+
+# --- Process input ---
+if user_input:
     try:
         summary = wikipedia.summary(user_input, sentences=2)
-        st.write(f"**🤖 Bot:** {summary}")
-
-        # Generate TTS
-        tts = gTTS(text=summary, lang='en', tld='co.in')
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
-            tts.save(tmp_file.name)
-
-            # Auto-play audio without play button
-            audio_bytes = open(tmp_file.name, "rb").read()
-            audio_base64 = base64.b64encode(audio_bytes).decode()
-            audio_html = f"""
-                <audio autoplay>
-                    <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                </audio>
-            """
-            st.markdown(audio_html, unsafe_allow_html=True)
-
+        st.session_state.chat.append(("user", user_input))
+        st.session_state.chat.append(("bot", summary))
+        speak_text(summary)
     except wikipedia.exceptions.DisambiguationError as e:
-        st.error(f"Your query was too broad. Try one of these: {e.options[:5]}")
+        msg = f"⚠ Too many results: {e.options[:5]}"
+        st.session_state.chat.append(("bot", msg))
     except wikipedia.exceptions.PageError:
-        st.error("Sorry, I couldn't find anything on Wikipedia for that topic.")
+        msg = "❌ No page found for your query."
+        st.session_state.chat.append(("bot", msg))
 
-# Footer
-st.markdown("""
-    <div class="footer">
-        Made with ❤️ by <b>Likhiii</b>
-    </div>
-""", unsafe_allow_html=True)
+# --- Display chat ---
+for sender, message in st.session_state.chat:
+    if sender == "user":
+        st.markdown(f"**🧑 You:** {message}")
+    else:
+        st.markdown(f"**🤖 Bot:** {message}")
+        st.markdown('<div class="love-footer">Made with <span>❤️</span> by Likhiii</div>', unsafe_allow_html=True)
