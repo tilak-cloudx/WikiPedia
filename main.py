@@ -4,32 +4,46 @@ from gtts import gTTS
 import tempfile
 import base64
 import time
+import random
 
+# --- Page config ---
 st.set_page_config(page_title="Ask Meh Anything Buddy...", page_icon="📚", layout="centered")
 
-# --- Custom CSS for animated newspaper background & petals ---
+# --- Sidebar ---
+with st.sidebar:
+    st.markdown("<h2>💖 About Us</h2>", unsafe_allow_html=True)
+    st.write("""
+    Welcome to **Ask Meh Anything Buddy...**!  
+    Your cute Wikipedia-powered chatbot with voice, images, music, and petals 🌸.  
+    Now with a vintage newspaper vibe 📰.
+    """)
+
+    st.markdown("<h2>📌 User Guidance</h2>", unsafe_allow_html=True)
+    st.write("""
+    1. Type your question in the box.  
+    2. Press **Enter** to ask.  
+    3. Enjoy the petals 🌸, music 🎶, and newspaper-style background.  
+    4. Toggle music from the button.  
+    5. Relax and enjoy 💫.
+    """)
+
+    st.markdown("---")
+    st.markdown("Made with ❤️ using Streamlit & Wikipedia API")
+
+# --- Session state ---
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "music_on" not in st.session_state:
+    st.session_state.music_on = False
+
+# --- CSS for background & animations ---
 st.markdown("""
 <style>
-/* Animated newspaper texture background for whole app */
-[data-testid="stAppViewContainer"] {
-    background: url('https://www.transparenttextures.com/patterns/newspaper.png') repeat;
-    animation: scrollBg 60s linear infinite;
-}
-@keyframes scrollBg {
-    from { background-position: 0 0; }
-    to { background-position: 100% 100%; }
-}
-
-/* Transparent backgrounds so the texture shows */
-[data-testid="stVerticalBlock"],
-[data-testid="stChatMessage"] {
-    background-color: transparent !important;
-}
-
-/* Sidebar styling */
-[data-testid="stSidebar"] {
-    background: rgba(0,0,0,0.6);
-    color: white;
+body {
+    background-color: #fdf6e3;
+    background-image: url('https://www.transparenttextures.com/patterns/newsprint.png');
+    color: #222;
+    font-family: 'Times New Roman', serif;
 }
 
 /* Sakura petals */
@@ -50,75 +64,47 @@ st.markdown("""
 /* Chat bubbles */
 .chat-bubble {
     padding: 10px 15px;
-    border-radius: 20px;
+    border-radius: 10px;
     margin: 8px 0;
     max-width: 80%;
     display: inline-block;
-    animation: fadeIn 0.3s ease-in-out;
 }
 .user-bubble {
-    background-color: #ffe4ec;
-    align-self: flex-end;
-    color: #333;
+    background-color: #fce4ec;
+    color: #222;
 }
 .bot-bubble {
-    background-color: #e4f0ff;
-    color: #333;
+    background-color: #fff3e0;
+    color: #222;
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
 }
-.avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: inline-block;
-    vertical-align: middle;
-    margin-right: 8px;
+
+/* Typewriter animation */
+@keyframes typing {
+    from { width: 0 }
+    to { width: 100% }
 }
-.chat-row {
-    display: flex;
-    align-items: flex-start;
-}
-@keyframes fadeIn {
-    from {opacity: 0; transform: translateY(5px);}
-    to {opacity: 1; transform: translateY(0);}
+.typewriter {
+    overflow: hidden;
+    border-right: .15em solid orange;
+    white-space: nowrap;
+    animation: typing 3s steps(40, end);
 }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Floating Sakura Petals ---
+# --- Create petals ---
 petals_html = "".join([
-    f'<div class="petal" style="left:{i*10}%; width:10px; height:10px; animation-duration:{4+i%5}s; animation-delay:{i%3}s;"></div>'
+    f'<div class="petal" style="left:{random.randint(0,100)}%; width:10px; height:10px; animation-duration:{4+i%5}s; animation-delay:{i%3}s;"></div>'
     for i in range(10)
 ])
 st.markdown(petals_html, unsafe_allow_html=True)
 
-# --- Sidebar ---
-with st.sidebar:
-    st.markdown("<h2>💖 About Us</h2>", unsafe_allow_html=True)
-    st.write("""
-    Welcome to **Ask Meh Anything Buddy**!  
-    I'm your friendly bot that answers your questions from Wikipedia 💕  
-    You can listen to my answers, see images, and enjoy petals 🌸.
-    """)
-    st.markdown("<h2>📌 User Guidance</h2>", unsafe_allow_html=True)
-    st.write("""
-    1. Type your question below.  
-    2. Press Enter to ask.  
-    3. Enjoy the petals, music 🎶, and images.  
-    4. Toggle music with the button.  
-    5. Have fun!
-    """)
-    st.markdown("---")
-    st.markdown("Made with ❤️ using Streamlit & Wikipedia API")
-
-# --- Session State ---
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "music_on" not in st.session_state:
-    st.session_state.music_on = False
-
-# --- Music Toggle ---
+# --- Music toggle ---
 if st.button("🎶 Toggle Music"):
     st.session_state.music_on = not st.session_state.music_on
+
 if st.session_state.music_on:
     st.markdown("""
         <audio autoplay loop>
@@ -126,46 +112,43 @@ if st.session_state.music_on:
         </audio>
     """, unsafe_allow_html=True)
 
-# --- Chat Display ---
+# --- Display message ---
 def display_message(role, text):
     if role == "user":
         st.markdown(f"""
-        <div class="chat-row" style="justify-content: flex-end;">
-            <div class="chat-bubble user-bubble">{text}</div>
-            <img src="https://i.ibb.co/znz7tbn/user.png" class="avatar">
-        </div>
+        <div class="chat-bubble user-bubble">{text}</div>
         """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
-        <div class="chat-row">
-            <img src="https://i.ibb.co/XZ7j5ML/robot.png" class="avatar">
-            <div class="chat-bubble bot-bubble">{text}</div>
-        </div>
+        <div class="chat-bubble bot-bubble typewriter">{text}</div>
         """, unsafe_allow_html=True)
 
 # --- Title ---
 st.markdown("<h1 style='text-align:center;'>📚 Ask Meh Anything Buddy...</h1>", unsafe_allow_html=True)
 
-# --- Input ---
-user_input = st.text_input("Ask something...", key="input_text", placeholder="Type your question here...")
+# --- User Input ---
+user_input = st.text_input("Ask something...", key="input_text", placeholder="Type your question and press Enter...")
 
-# --- Wikipedia Search ---
+# --- When user submits ---
 if user_input:
     st.session_state.messages.append(("user", user_input))
     display_message("user", user_input)
 
-    with st.spinner("Searching Wikipedia..."):
+    with st.spinner("Buddy is thinking..."):
         time.sleep(1)
         try:
             page = wikipedia.page(user_input)
             summary = page.summary[:500] + "..."
-            image_url = next((img for img in page.images if img.lower().endswith((".jpg", ".jpeg", ".png")) and "svg" not in img.lower()), None)
+            image_url = None
+            for img in page.images:
+                if img.lower().endswith((".jpg", ".jpeg", ".png")) and "svg" not in img.lower():
+                    image_url = img
+                    break
         except wikipedia.exceptions.DisambiguationError as e:
-            summary = f"Too broad. Try one of these: {e.options[:5]}"
+            summary = f"Too many results! Try: {e.options[:5]}"
             image_url = None
         except wikipedia.exceptions.PageError:
-            summary = "Sorry, I couldn't find anything."
-            image_url = None
+            summary = "Sorry buddy, I couldn't find anything for that."
 
     st.session_state.messages.append(("bot", summary))
     display_message("bot", summary)
@@ -173,11 +156,11 @@ if user_input:
     if image_url:
         st.image(image_url, width=300)
 
-    # Voice Output
-    tts = gTTS(text=summary, lang='en', tld='co.in')
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
-        tts.save(tmp.name)
-        audio_bytes = open(tmp.name, "rb").read()
+    # Voice output
+    tts = gTTS(text=summary, lang='en')
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
+        tts.save(tmp_file.name)
+        audio_bytes = open(tmp_file.name, "rb").read()
         audio_base64 = base64.b64encode(audio_bytes).decode()
         st.markdown(f"""
             <audio autoplay>
@@ -185,6 +168,6 @@ if user_input:
             </audio>
         """, unsafe_allow_html=True)
 
-# --- Show Chat History ---
+# --- Display chat history ---
 for role, text in st.session_state.messages:
     display_message(role, text)
