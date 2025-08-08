@@ -35,15 +35,23 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "music_on" not in st.session_state:
     st.session_state.music_on = False
+if "new_bot_message" not in st.session_state:
+    st.session_state.new_bot_message = False
 
-# --- CSS: chat bubbles, petals, typewriter, mobile ---
+# --- CSS for background & animations ---
 st.markdown("""
 <style>
-body {
-    background-color: #fdf6e3;
-    background-image: url('https://www.transparenttextures.com/patterns/newsprint.png');
-    color: #222;
-    font-family: 'Times New Roman', serif;
+body, .stApp {
+    background-color: #fdf6e3 !important;
+    background-image: url('https://www.transparenttextures.com/patterns/newsprint.png') !important;
+    color: #222 !important;
+    font-family: 'Times New Roman', serif !important;
+    overflow-x: hidden;
+}
+
+/* Sidebar styling */
+section[data-testid="stSidebar"] {
+    background-color: #f8f5e1 !important;
 }
 
 /* Sakura petals */
@@ -53,7 +61,9 @@ body {
     background: pink;
     border-radius: 150% 0 150% 0;
     opacity: 0.8;
-    animation: fall linear infinite;
+    animation-name: fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
     z-index: 9999;
 }
 @keyframes fall {
@@ -69,7 +79,6 @@ body {
     max-width: 80%;
     display: inline-block;
     word-wrap: break-word;
-    animation: fadeIn 0.3s ease-in;
 }
 .user-bubble {
     background-color: #fce4ec;
@@ -81,67 +90,38 @@ body {
     color: #222;
     font-family: 'Courier New', monospace;
     white-space: pre-wrap;
-    animation: typing 2s steps(40, end), blink-caret 0.75s step-end infinite;
+    align-self: flex-start;
 }
 
-/* Typewriter effect */
+/* Typewriter animation */
 @keyframes typing {
     from { width: 0 }
     to { width: 100% }
 }
-@keyframes blink-caret {
-    from, to { border-color: transparent }
-    50% { border-color: orange }
+.typewriter {
+    overflow: hidden;
+    border-right: .15em solid orange;
+    white-space: nowrap;
+    animation: typing 3s steps(40, end);
+}
+.chat-container {
+    display: flex;
+    flex-direction: column;
 }
 
-/* Fade-in animation */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Responsive adjustments */
-@media only screen and (max-width: 600px) {
-    .chat-bubble {
-        max-width: 95% !important;
-        font-size: 14px !important;
-        padding: 8px 12px !important;
-        border-radius: 12px !important;
-        word-wrap: break-word !important;
-    }
-    input[type="text"] {
-        width: 95% !important;
-        font-size: 16px !important;
-        padding: 10px !important;
-    }
-    .stButton>button {
-        width: 95% !important;
-        font-size: 16px !important;
-        padding: 10px !important;
-    }
-    section[data-testid="stSidebar"] {
-        width: 100% !important;
-        position: relative !important;
-        border-right: none !important;
-        border-bottom: 2px solid #ddd !important;
-        margin-bottom: 1rem !important;
-    }
-}
-
-img {
-    max-width: 90vw !important;
-    height: auto !important;
-    border-radius: 6px !important;
-    margin: 10px 0 !important;
-}
+/* Hide Streamlit footer */
+footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# --- Create petals ---
-petals_html = "".join([
-    f'<div class="petal" style="left:{random.randint(0,100)}%; width:10px; height:10px; animation-duration:{4+i%5}s; animation-delay:{i%3}s;"></div>'
-    for i in range(10)
-])
+# --- Create petals with random positions, sizes and durations ---
+petals_html = ""
+for i in range(15):
+    left = random.randint(0, 100)
+    size = random.randint(8, 18)
+    duration = random.uniform(4, 8)
+    delay = random.uniform(0, 5)
+    petals_html += f'<div class="petal" style="left:{left}%; width:{size}px; height:{size}px; animation-duration:{duration}s; animation-delay:{delay}s;"></div>'
 st.markdown(petals_html, unsafe_allow_html=True)
 
 # --- Music toggle ---
@@ -155,11 +135,12 @@ if st.session_state.music_on:
         </audio>
     """, unsafe_allow_html=True)
 
-# --- Display chat bubble ---
-def display_message(role, text):
-    bubble_class = "user-bubble" if role == "user" else "bot-bubble"
+# --- Display message ---
+def display_message(role, text, animate=False):
+    cls = "user-bubble" if role == "user" else "bot-bubble"
+    typewriter_class = "typewriter" if animate else ""
     st.markdown(f"""
-    <div class="chat-bubble {bubble_class}">{text}</div>
+    <div class="chat-bubble {cls} {typewriter_class}">{text}</div>
     """, unsafe_allow_html=True)
 
 # --- Title ---
@@ -184,15 +165,16 @@ if user_input:
                     image_url = img
                     break
         except wikipedia.exceptions.DisambiguationError as e:
-            summary = f"Too many results! Try: {e.options[:5]}"
+            summary = f"Too many results! Try: {', '.join(e.options[:5])}"
             image_url = None
         except wikipedia.exceptions.PageError:
             summary = "Sorry buddy, I couldn't find anything for that."
             image_url = None
 
     st.session_state.messages.append(("bot", summary))
-    display_message("bot", summary)
+    st.session_state.new_bot_message = True
 
+    # Show image if available
     if image_url:
         st.image(image_url, width=300)
 
@@ -208,6 +190,13 @@ if user_input:
             </audio>
         """, unsafe_allow_html=True)
 
-# --- Display chat history on refresh ---
-for role, text in st.session_state.messages:
-    display_message(role, text)
+# --- Display chat history ---
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+for i, (role, text) in enumerate(st.session_state.messages):
+    # Animate only the latest bot message
+    animate = (role == "bot" and i == len(st.session_state.messages) - 1 and st.session_state.new_bot_message)
+    display_message(role, text, animate=animate)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Reset animation flag after displaying
+st.session_state.new_bot_message = False
