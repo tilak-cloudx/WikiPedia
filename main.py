@@ -37,7 +37,7 @@ st.markdown("""
         display: none;
     }
 
-    /* Footer style with black background */
+    /* Footer matches page background */
     .footer {
         position: fixed;
         bottom: 0;
@@ -45,10 +45,9 @@ st.markdown("""
         width: 100%;
         text-align: center;
         padding: 8px;
-        background-color: #000; /* black background */
+        background-color: transparent; /* blends with app background */
         font-size: 14px;
-        color: #fff; /* white text */
-        border-top: 1px solid #222;
+        color: #555;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -99,7 +98,7 @@ if user_input.strip():
     except wikipedia.exceptions.PageError:
         st.error("Sorry, I couldn't find anything on Wikipedia for that topic.")
 
-# Footer with black background
+# Footer matching page background
 st.markdown("""
     <div class="footer">
         Made with ❤️ by <b>Likhiii</b>
