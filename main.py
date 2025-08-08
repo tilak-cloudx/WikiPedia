@@ -35,15 +35,23 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "music_on" not in st.session_state:
     st.session_state.music_on = False
+if "new_bot_message" not in st.session_state:
+    st.session_state.new_bot_message = False
 
 # --- CSS for background & animations ---
 st.markdown("""
 <style>
-body {
-    background-color: #fdf6e3;
-    background-image: url('https://www.transparenttextures.com/patterns/newsprint.png');
-    color: #222;
-    font-family: 'Times New Roman', serif;
+body, .stApp {
+    background-color: #fdf6e3 !important;
+    background-image: url('https://www.transparenttextures.com/patterns/newsprint.png') !important;
+    color: #222 !important;
+    font-family: 'Times New Roman', serif !important;
+    overflow-x: hidden;
+}
+
+/* Sidebar styling */
+section[data-testid="stSidebar"] {
+    background-color: #f8f5e1 !important;
 }
 
 /* Sakura petals */
@@ -53,7 +61,9 @@ body {
     background: pink;
     border-radius: 150% 0 150% 0;
     opacity: 0.8;
-    animation: fall linear infinite;
+    animation-name: fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
     z-index: 9999;
 }
 @keyframes fall {
@@ -68,16 +78,19 @@ body {
     margin: 8px 0;
     max-width: 80%;
     display: inline-block;
+    word-wrap: break-word;
 }
 .user-bubble {
     background-color: #fce4ec;
     color: #222;
+    align-self: flex-end;
 }
 .bot-bubble {
     background-color: #fff3e0;
     color: #222;
     font-family: 'Courier New', monospace;
     white-space: pre-wrap;
+    align-self: flex-start;
 }
 
 /* Typewriter animation */
@@ -91,14 +104,24 @@ body {
     white-space: nowrap;
     animation: typing 3s steps(40, end);
 }
+.chat-container {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Hide Streamlit footer */
+footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# --- Create petals ---
-petals_html = "".join([
-    f'<div class="petal" style="left:{random.randint(0,100)}%; width:10px; height:10px; animation-duration:{4+i%5}s; animation-delay:{i%3}s;"></div>'
-    for i in range(10)
-])
+# --- Create petals with random positions, sizes and durations ---
+petals_html = ""
+for i in range(15):
+    left = random.randint(0, 100)
+    size = random.randint(8, 18)
+    duration = random.uniform(4, 8)
+    delay = random.uniform(0, 5)
+    petals_html += f'<div class="petal" style="left:{left}%; width:{size}px; height:{size}px; animation-duration:{duration}s; animation-delay:{delay}s;"></div>'
 st.markdown(petals_html, unsafe_allow_html=True)
 
 # --- Music toggle ---
@@ -113,15 +136,12 @@ if st.session_state.music_on:
     """, unsafe_allow_html=True)
 
 # --- Display message ---
-def display_message(role, text):
-    if role == "user":
-        st.markdown(f"""
-        <div class="chat-bubble user-bubble">{text}</div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div class="chat-bubble bot-bubble typewriter">{text}</div>
-        """, unsafe_allow_html=True)
+def display_message(role, text, animate=False):
+    cls = "user-bubble" if role == "user" else "bot-bubble"
+    typewriter_class = "typewriter" if animate else ""
+    st.markdown(f"""
+    <div class="chat-bubble {cls} {typewriter_class}">{text}</div>
+    """, unsafe_allow_html=True)
 
 # --- Title ---
 st.markdown("<h1 style='text-align:center;'>📚 Ask Meh Anything Buddy...</h1>", unsafe_allow_html=True)
@@ -145,14 +165,16 @@ if user_input:
                     image_url = img
                     break
         except wikipedia.exceptions.DisambiguationError as e:
-            summary = f"Too many results! Try: {e.options[:5]}"
+            summary = f"Too many results! Try: {', '.join(e.options[:5])}"
             image_url = None
         except wikipedia.exceptions.PageError:
             summary = "Sorry buddy, I couldn't find anything for that."
+            image_url = None
 
     st.session_state.messages.append(("bot", summary))
-    display_message("bot", summary)
+    st.session_state.new_bot_message = True
 
+    # Show image if available
     if image_url:
         st.image(image_url, width=300)
 
@@ -169,5 +191,12 @@ if user_input:
         """, unsafe_allow_html=True)
 
 # --- Display chat history ---
-for role, text in st.session_state.messages:
-    display_message(role, text)
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+for i, (role, text) in enumerate(st.session_state.messages):
+    # Animate only the latest bot message
+    animate = (role == "bot" and i == len(st.session_state.messages) - 1 and st.session_state.new_bot_message)
+    display_message(role, text, animate=animate)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Reset animation flag after displaying
+st.session_state.new_bot_message = False
