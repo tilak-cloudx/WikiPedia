@@ -36,7 +36,7 @@ if "messages" not in st.session_state:
 if "music_on" not in st.session_state:
     st.session_state.music_on = False
 
-# --- CSS for background & animations (with added mobile responsiveness) ---
+# --- CSS for background & animations ---
 st.markdown("""
 <style>
 body {
@@ -208,4 +208,4 @@ if user_input:
 
 # --- Display chat history ---
 for role, text in st.session_state.messages:
-    display_message(role, text)s
+    display_message(role, text)
