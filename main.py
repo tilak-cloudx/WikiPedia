@@ -24,7 +24,8 @@ with st.sidebar:
     2. Press **Enter** to ask.  
     3. Enjoy the petals 🌸, music 🎶, and newspaper-style background.  
     4. Toggle music from the button.  
-    5. Relax and enjoy 💫.
+    5. Upload files with the glowing + button!  
+    6. Relax and enjoy 💫.
     """)
 
     st.markdown("---")
@@ -35,8 +36,10 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "music_on" not in st.session_state:
     st.session_state.music_on = False
+if "uploaded_files" not in st.session_state:
+    st.session_state.uploaded_files = []
 
-# --- CSS for background & animations (with added mobile responsiveness) ---
+# --- CSS for background & animations ---
 st.markdown("""
 <style>
 body {
@@ -93,14 +96,27 @@ body {
     animation: typing 3s steps(40, end);
 }
 
-/* Responsive adjustments */
+/* + upload button styles */
+#upload-label {
+    font-size: 28px;
+    cursor: pointer;
+    color: #ff00de;
+    user-select: none;
+    line-height: 1;
+    padding-left: 6px;
+    vertical-align: middle;
+}
+#file-uploader {
+    display: none;
+}
+
+/* Responsive */
 @media only screen and (max-width: 600px) {
     .chat-bubble {
         max-width: 95% !important;
         font-size: 14px !important;
         padding: 8px 12px !important;
         border-radius: 12px !important;
-        word-wrap: break-word !important;
     }
     input[type="text"] {
         width: 95% !important;
@@ -149,27 +165,44 @@ if st.session_state.music_on:
         </audio>
     """, unsafe_allow_html=True)
 
-# --- Display message ---
-def display_message(role, text):
-    if role == "user":
-        st.markdown(f"""
-        <div class="chat-bubble user-bubble">{text}</div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div class="chat-bubble bot-bubble typewriter">{text}</div>
-        """, unsafe_allow_html=True)
-
 # --- Title ---
 st.markdown("<h1 style='text-align:center;'>📚 Ask Meh Anything Buddy...</h1>", unsafe_allow_html=True)
 
-# --- User Input ---
-user_input = st.text_input("Ask something...", key="input_text", placeholder="Type your question and press Enter...")
+# --- Input and upload button ---
+col1, col2 = st.columns([0.85, 0.15])
 
-# --- When user submits ---
+with col1:
+    user_input = st.text_input("Ask something...", placeholder="Type your question and press Enter...", key="input_text")
+
+with col2:
+    # Hidden file uploader
+    uploaded_files = st.file_uploader("", accept_multiple_files=True, type=["png", "jpg", "jpeg", "pdf", "txt"], key="file-uploader")
+
+    # Plus sign label that triggers file uploader click
+    st.markdown("""
+    <label for="file-uploader" id="upload-label" title="Upload files or images">+</label>
+    """, unsafe_allow_html=True)
+
+# --- Handle uploaded files ---
+if uploaded_files:
+    if not isinstance(uploaded_files, list):
+        uploaded_files = [uploaded_files]
+    for uploaded_file in uploaded_files:
+        if uploaded_file not in st.session_state.uploaded_files:
+            st.session_state.uploaded_files.append(uploaded_file)
+
+# --- Show uploaded files ---
+if st.session_state.uploaded_files:
+    st.markdown("### Uploaded files:")
+    for f in st.session_state.uploaded_files:
+        st.write(f.name)
+        if f.type.startswith("image/"):
+            st.image(f)
+
+# --- When user submits question ---
 if user_input:
     st.session_state.messages.append(("user", user_input))
-    display_message("user", user_input)
+    st.markdown(f"<div class='chat-bubble user-bubble'>{user_input}</div>", unsafe_allow_html=True)
 
     with st.spinner("Buddy is thinking..."):
         time.sleep(1)
@@ -189,7 +222,7 @@ if user_input:
             image_url = None
 
     st.session_state.messages.append(("bot", summary))
-    display_message("bot", summary)
+    st.markdown(f"<div class='chat-bubble bot-bubble typewriter'>{summary}</div>", unsafe_allow_html=True)
 
     if image_url:
         st.image(image_url, width=300)
@@ -208,4 +241,7 @@ if user_input:
 
 # --- Display chat history ---
 for role, text in st.session_state.messages:
-    display_message(role, text)
+    if role == "user":
+        st.markdown(f"<div class='chat-bubble user-bubble'>{text}</div>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"<div class='chat-bubble bot-bubble typewriter'>{text}</div>", unsafe_allow_html=True)
