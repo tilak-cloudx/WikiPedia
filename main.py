@@ -35,15 +35,26 @@ st.markdown("""
     input[type="file"] {
         display: none;
     }
-    audio {
-        display: none; /* hide the audio player */
+    /* Footer style */
+    .footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        padding: 8px;
+        background-color: #f9f9f9;
+        font-size: 14px;
+        color: #555;
+        border-top: 1px solid #ddd;
     }
     </style>
 """, unsafe_allow_html=True)
 
+# Title
 st.markdown("<h1 style='text-align:center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
 
-# Wrap the input and icons together
+# Chat input with icons
 st.markdown('<div class="chat-input-wrapper">', unsafe_allow_html=True)
 user_input = st.text_input(
     "Ask something...",
@@ -60,26 +71,23 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# If Enter is pressed and input is not empty
+# Process input
 if user_input.strip():
     try:
         summary = wikipedia.summary(user_input, sentences=2)
         st.write(f"**🤖 Bot:** {summary}")
 
-        # Generate voice output
+        # Generate TTS
         tts = gTTS(text=summary, lang='en', tld='co.in')
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
             tts.save(tmp_file.name)
 
-            # Convert audio to base64 for autoplay
-            with open(tmp_file.name, "rb") as f:
-                audio_bytes = f.read()
-            audio_b64 = base64.b64encode(audio_bytes).decode()
-
-            # Inject HTML audio autoplay
+            # Auto-play audio without play button
+            audio_bytes = open(tmp_file.name, "rb").read()
+            audio_base64 = base64.b64encode(audio_bytes).decode()
             audio_html = f"""
                 <audio autoplay>
-                    <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
+                    <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
                 </audio>
             """
             st.markdown(audio_html, unsafe_allow_html=True)
@@ -88,3 +96,10 @@ if user_input.strip():
         st.error(f"Your query was too broad. Try one of these: {e.options[:5]}")
     except wikipedia.exceptions.PageError:
         st.error("Sorry, I couldn't find anything on Wikipedia for that topic.")
+
+# Footer
+st.markdown("""
+    <div class="footer">
+        Made with ❤️ by <b>Likhiii</b>
+    </div>
+""", unsafe_allow_html=True)
