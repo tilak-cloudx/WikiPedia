@@ -7,6 +7,27 @@ import time
 
 st.set_page_config(page_title="Cute Wikipedia Chatbot", page_icon="📚", layout="centered")
 
+# --- Sidebar ---
+with st.sidebar:
+    st.markdown("<h2>💖 About Us</h2>", unsafe_allow_html=True)
+    st.write("""
+    Welcome to **Cute Wikipedia Chatbot**!  
+    I'm your friendly bot that answers your questions from Wikipedia in the most adorable way possible 💕  
+    You can listen to my answers, see images, and enjoy falling sakura petals 🌸.
+    """)
+
+    st.markdown("<h2>📌 User Guidance</h2>", unsafe_allow_html=True)
+    st.write("""
+    1. Type your question in the box.  
+    2. Press **Enter** to ask.  
+    3. Enjoy the pastel bubbles, music 🎶, and images.  
+    4. Toggle music on/off from the button.  
+    5. Sit back and enjoy the cuteness 💫.
+    """)
+
+    st.markdown("---")
+    st.markdown("Made with ❤️ using Streamlit & Wikipedia API")
+
 # --- Session state ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
