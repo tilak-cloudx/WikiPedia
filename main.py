@@ -6,9 +6,10 @@ import base64
 
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
-# CSS for mic + plus icons inside input & footer + sparkles
+# CSS for mic + plus icons, footer glow, and floating sparkles
 st.markdown("""
     <style>
+    /* Chat input styling */
     .chat-input-wrapper {
         position: relative;
         width: 100%;
@@ -36,7 +37,7 @@ st.markdown("""
         display: none;
     }
 
-    /* Footer style with sparkles */
+    /* Footer style with white glow */
     .footer {
         position: fixed;
         bottom: 0;
@@ -45,31 +46,52 @@ st.markdown("""
         text-align: center;
         padding: 8px;
         background-color: transparent;
-        font-size: 16px;
+        font-size: 14px;
         color: white;
         font-weight: bold;
         letter-spacing: 0.5px;
-        text-shadow: 0px 0px 6px rgba(255,255,255,0.9);
+        text-shadow: 0px 0px 8px white, 0px 0px 12px white; /* Strong white glow */
+        z-index: 100;
     }
 
-    /* Sparkle animations */
+    /* Sparkles container */
     .sparkle {
-        position: absolute;
-        font-size: 14px;
-        animation: float 2s infinite ease-in-out;
-        color: #fff;
-        text-shadow: 0px 0px 6px rgba(255,255,255,0.9);
+        position: fixed;
+        bottom: -20px;
+        font-size: 18px;
+        animation: rise 6s linear infinite;
+        opacity: 0.8;
+        z-index: 0;
     }
-    .sparkle1 { left: 50%; bottom: 20px; animation-delay: 0s; }
-    .sparkle2 { left: 52%; bottom: 25px; animation-delay: 0.5s; }
-    .sparkle3 { left: 48%; bottom: 18px; animation-delay: 1s; }
 
-    @keyframes float {
-        0% { transform: translateY(0); opacity: 1; }
-        50% { transform: translateY(-6px); opacity: 0.8; }
-        100% { transform: translateY(0); opacity: 1; }
+    /* Floating animation */
+    @keyframes rise {
+        0% {
+            transform: translateY(0) scale(1);
+            opacity: 0.9;
+        }
+        100% {
+            transform: translateY(-100vh) scale(0.8);
+            opacity: 0;
+        }
     }
     </style>
+
+    <script>
+    // Create sparkles dynamically
+    document.addEventListener("DOMContentLoaded", function(){
+        const sparkleCount = 15; // Number of sparkles
+        for (let i = 0; i < sparkleCount; i++) {
+            let sparkle = document.createElement("div");
+            sparkle.className = "sparkle";
+            sparkle.innerHTML = "✨";
+            sparkle.style.left = Math.random() * 100 + "vw";
+            sparkle.style.animationDuration = (4 + Math.random() * 4) + "s";
+            sparkle.style.fontSize = (14 + Math.random() * 10) + "px";
+            document.body.appendChild(sparkle);
+        }
+    });
+    </script>
 """, unsafe_allow_html=True)
 
 # Title
@@ -103,6 +125,7 @@ if user_input.strip():
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
             tts.save(tmp_file.name)
 
+            # Auto-play audio
             audio_bytes = open(tmp_file.name, "rb").read()
             audio_base64 = base64.b64encode(audio_bytes).decode()
             audio_html = f"""
@@ -117,12 +140,9 @@ if user_input.strip():
     except wikipedia.exceptions.PageError:
         st.error("Sorry, I couldn't find anything on Wikipedia for that topic.")
 
-# Footer with sparkles
+# Footer with white glow
 st.markdown("""
     <div class="footer">
         Made with ❤️ by <b>Likhiii</b>
-        <div class="sparkle sparkle1">✨</div>
-        <div class="sparkle sparkle2">✨</div>
-        <div class="sparkle sparkle3">✨</div>
     </div>
 """, unsafe_allow_html=True)
