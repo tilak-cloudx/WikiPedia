@@ -1,74 +1,48 @@
 import streamlit as st
-import wikipedia
+import base64
 from gtts import gTTS
-import tempfile
+import wikipedia
 
-st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
+st.set_page_config(page_title="Wikipedia Chatbot", layout="centered")
 
-# CSS for mic + plus icons inside input
-st.markdown("""
-    <style>
-    .chat-input-wrapper {
-        position: relative;
-        width: 100%;
-    }
-    .chat-icons {
-        position: absolute;
-        right: 8px;
-        top: 50%;
-        transform: translateY(-50%);
-        display: flex;
-        gap: 6px;
-    }
-    .icon-btn {
-        background: none;
-        border: none;
-        font-size: 18px;
-        cursor: pointer;
-        color: #555;
-        padding: 4px;
-    }
-    .icon-btn:hover {
-        color: black;
-    }
-    input[type="file"] {
-        display: none;
-    }
-    </style>
-""", unsafe_allow_html=True)
+st.title("📚 Wikipedia Chatbot")
 
-st.markdown("<h1 style='text-align:center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
+query = st.text_input("Ask me anything:", key="input", on_change=lambda: st.session_state.submit_query())
 
-# Wrap the input and icons together
-st.markdown('<div class="chat-input-wrapper">', unsafe_allow_html=True)
-user_input = st.text_input(
-    "Ask something...",
-    key="chat_input",
-    label_visibility="collapsed",
-    placeholder="Type your question and press Enter..."
-)
-st.markdown("""
-    <div class="chat-icons">
-        <button class="icon-btn" onclick="alert('🎤 Listening...')">🎤</button>
-        <label for="file-upload" class="icon-btn">➕</label>
-        <input id="file-upload" type="file" accept=".jpg,.jpeg,.png,.txt,.pdf">
-    </div>
-""", unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-# If Enter is pressed and input is not empty
-if user_input.strip():
-    try:
-        summary = wikipedia.summary(user_input, sentences=2)
-        st.write(f"**🤖 Bot:** {summary}")
+def submit_query():
+    query = st.session_state.input.strip()
+    if query:
+        try:
+            answer = wikipedia.summary(query, sentences=2)
+        except:
+            answer = "Sorry, I couldn't find that."
+        st.session_state.messages.append({"role": "user", "text": query})
+        st.session_state.messages.append({"role": "bot", "text": answer})
+        
+        # Generate speech
+        tts = gTTS(answer, lang="en", tld="co.in")
+        tts.save("response.mp3")
+        
+        # Convert to base64
+        with open("response.mp3", "rb") as f:
+            audio_bytes = f.read()
+        b64 = base64.b64encode(audio_bytes).decode()
+        
+        # Inject JS to autoplay
+        st.markdown(f"""
+            <audio autoplay>
+                <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
+            </audio>
+        """, unsafe_allow_html=True)
 
-        # Generate voice output (female voice)
-        tts = gTTS(text=summary, lang='en', tld='co.in')
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
-            tts.save(tmp_file.name)
-            st.audio(tmp_file.name, format="audio/mp3")
+st.session_state.submit_query = submit_query
 
-    except wikipedia.exceptions.DisambiguationError as e:
-        st.error(f"Your query was too broad. Try one of these: {e.options[:5]}")
-    except wikipedia.exceptions.PageError:
-        st.error("Sorry, I couldn't find anything on Wikipedia for that topic.")
+# Display messages
+for msg in st.session_state.messages:
+    if msg["role"] == "user":
+        st.markdown(f"**🧑 You:** {msg['text']}")
+    else:
+        st.markdown(f"**🤖 Bot:** {msg['text']}")
