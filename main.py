@@ -36,7 +36,7 @@ if "messages" not in st.session_state:
 if "music_on" not in st.session_state:
     st.session_state.music_on = False
 
-# --- CSS for background & animations ---
+# --- CSS for background & animations (with added mobile responsiveness) ---
 st.markdown("""
 <style>
 body {
@@ -68,6 +68,7 @@ body {
     margin: 8px 0;
     max-width: 80%;
     display: inline-block;
+    word-wrap: break-word;
 }
 .user-bubble {
     background-color: #fce4ec;
@@ -90,6 +91,42 @@ body {
     border-right: .15em solid orange;
     white-space: nowrap;
     animation: typing 3s steps(40, end);
+}
+
+/* Responsive adjustments */
+@media only screen and (max-width: 600px) {
+    .chat-bubble {
+        max-width: 95% !important;
+        font-size: 14px !important;
+        padding: 8px 12px !important;
+        border-radius: 12px !important;
+        word-wrap: break-word !important;
+    }
+    input[type="text"] {
+        width: 95% !important;
+        font-size: 16px !important;
+        padding: 10px !important;
+    }
+    .stButton>button {
+        width: 95% !important;
+        font-size: 16px !important;
+        padding: 10px !important;
+    }
+    section[data-testid="stSidebar"] {
+        width: 100% !important;
+        position: relative !important;
+        border-right: none !important;
+        border-bottom: 2px solid #ddd !important;
+        margin-bottom: 1rem !important;
+    }
+}
+
+/* Responsive images */
+img {
+    max-width: 90vw !important;
+    height: auto !important;
+    border-radius: 6px !important;
+    margin: 10px 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -149,6 +186,7 @@ if user_input:
             image_url = None
         except wikipedia.exceptions.PageError:
             summary = "Sorry buddy, I couldn't find anything for that."
+            image_url = None
 
     st.session_state.messages.append(("bot", summary))
     display_message("bot", summary)
