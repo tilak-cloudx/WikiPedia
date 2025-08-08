@@ -6,10 +6,10 @@ import base64
 
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
-# CSS for cute animated background, sparkles, hearts, and glowing footer
+# CSS for floating emojis + gradient background
 st.markdown("""
     <style>
-    /* Animated pastel gradient background */
+    /* Pastel animated gradient background */
     body {
         background: linear-gradient(-45deg, #ffdde1, #ee9ca7, #c1c8e4, #fbc2eb, #a1c4fd);
         background-size: 400% 400%;
@@ -22,18 +22,28 @@ st.markdown("""
         100% { background-position: 0% 50%; }
     }
 
-    /* Floating emojis */
-    .float-emoji {
+    /* Floating container */
+    .floating-bg {
         position: fixed;
-        bottom: -20px;
-        animation: floatUp linear infinite;
-        opacity: 0.9;
-        z-index: 0;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
         pointer-events: none;
+        overflow: hidden;
+        z-index: 0;
     }
+
+    .emoji {
+        position: absolute;
+        bottom: -50px;
+        animation: floatUp 12s linear infinite;
+        opacity: 0.9;
+    }
+
     @keyframes floatUp {
-        0% { transform: translateY(0) scale(1); opacity: 1; }
-        100% { transform: translateY(-110vh) scale(0.8); opacity: 0; }
+        0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
     }
 
     /* Footer with strong white glow */
@@ -44,7 +54,6 @@ st.markdown("""
         width: 100%;
         text-align: center;
         padding: 8px;
-        background-color: transparent;
         font-size: 14px;
         color: white;
         font-weight: bold;
@@ -54,50 +63,31 @@ st.markdown("""
     }
     </style>
 
-    <script>
-    document.addEventListener("DOMContentLoaded", function(){
-        const emojis = ["✨", "💖", "🌸", "💫", "🌟", "💕", "🦋"];
-        const emojiCount = 25;
-
-        function createEmoji(){
-            let emoji = document.createElement("div");
-            emoji.className = "float-emoji";
-            emoji.innerHTML = emojis[Math.floor(Math.random() * emojis.length)];
-            emoji.style.left = Math.random() * 100 + "vw";
-            emoji.style.fontSize = (18 + Math.random() * 18) + "px";
-            emoji.style.animationDuration = (5 + Math.random() * 5) + "s";
-            document.body.appendChild(emoji);
-
-            setTimeout(() => { emoji.remove(); }, 10000);
-        }
-
-        // Keep generating emojis forever
-        setInterval(createEmoji, 500);
-    });
-    </script>
+    <!-- Floating emojis layer -->
+    <div class="floating-bg">
+        <div class="emoji" style="left:5%; animation-delay: 0s; font-size:22px;">✨</div>
+        <div class="emoji" style="left:15%; animation-delay: 3s; font-size:20px;">💖</div>
+        <div class="emoji" style="left:25%; animation-delay: 6s; font-size:18px;">🌸</div>
+        <div class="emoji" style="left:40%; animation-delay: 1s; font-size:24px;">💫</div>
+        <div class="emoji" style="left:55%; animation-delay: 5s; font-size:19px;">🌟</div>
+        <div class="emoji" style="left:70%; animation-delay: 2s; font-size:21px;">💕</div>
+        <div class="emoji" style="left:85%; animation-delay: 4s; font-size:20px;">🦋</div>
+        <div class="emoji" style="left:95%; animation-delay: 7s; font-size:23px;">✨</div>
+    </div>
 """, unsafe_allow_html=True)
 
 # Title
-st.markdown("<h1 style='text-align:center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center; position: relative; z-index: 1;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
 
-# Chat input with icons
-st.markdown('<div class="chat-input-wrapper" style="position: relative; width: 100%;">', unsafe_allow_html=True)
+# Chat input
 user_input = st.text_input(
     "Ask something...",
     key="chat_input",
     label_visibility="collapsed",
     placeholder="Type your question and press Enter..."
 )
-st.markdown("""
-    <div style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex; gap: 6px;">
-        <button class="icon-btn" onclick="alert('🎤 Listening...')" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #555; padding: 4px;">🎤</button>
-        <label for="file-upload" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #555; padding: 4px;">➕</label>
-        <input id="file-upload" type="file" accept=".jpg,.jpeg,.png,.txt,.pdf" style="display: none;">
-    </div>
-""", unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
 
-# Process input
+# Process query
 if user_input.strip():
     try:
         summary = wikipedia.summary(user_input, sentences=2)
@@ -108,7 +98,6 @@ if user_input.strip():
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
             tts.save(tmp_file.name)
 
-            # Auto-play audio
             audio_bytes = open(tmp_file.name, "rb").read()
             audio_base64 = base64.b64encode(audio_bytes).decode()
             audio_html = f"""
