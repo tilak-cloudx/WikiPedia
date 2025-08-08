@@ -8,7 +8,7 @@ import random
 
 st.set_page_config(page_title="Ask Meh Anything Buddy...", page_icon="📚", layout="centered")
 
-# Sidebar content
+# Sidebar (unchanged)
 with st.sidebar:
     st.markdown("<h2>💖 About Us</h2>", unsafe_allow_html=True)
     st.write("""
@@ -28,7 +28,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("Made with ❤️ using Streamlit & Wikipedia API")
 
-# Initialize session state variables
+# Session state initialization
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "music_on" not in st.session_state:
@@ -38,7 +38,7 @@ if "uploaded_files" not in st.session_state:
 if "last_audio_text" not in st.session_state:
     st.session_state.last_audio_text = ""
 
-# CSS styles
+# CSS styles including hidden file uploader + big pink + label
 st.markdown("""
 <style>
 body {
@@ -125,7 +125,7 @@ petals_html = "".join([
 ])
 st.markdown(petals_html, unsafe_allow_html=True)
 
-# Music toggle
+# Music toggle button
 if st.button("🎶 Toggle Music"):
     st.session_state.music_on = not st.session_state.music_on
 
@@ -139,17 +139,17 @@ if st.session_state.music_on:
 # Title
 st.markdown("<h1 style='text-align:center;'>📚 Ask Meh Anything Buddy...</h1>", unsafe_allow_html=True)
 
-# Input and + upload button layout
+# Input and + upload button
 col1, col2 = st.columns([0.85, 0.15])
-
 with col1:
     user_input = st.text_input("Ask something...", placeholder="Type your question and press Enter...", key="input_text")
 
 with col2:
-    uploaded_files = st.file_uploader("", accept_multiple_files=True, type=["png", "jpg", "jpeg", "pdf", "txt"], key="file-uploader", label_visibility="collapsed")
+    uploaded_files = st.file_uploader("", accept_multiple_files=True, type=["png","jpg","jpeg","pdf","txt"], key="file-uploader", label_visibility="collapsed")
+    # The + sign label for hidden uploader
     st.markdown('<label for="file-uploader" id="upload-label" title="Upload files or images">+</label>', unsafe_allow_html=True)
 
-# Handle uploaded files
+# Handle uploaded files (store in session state)
 if uploaded_files:
     if not isinstance(uploaded_files, list):
         uploaded_files = [uploaded_files]
@@ -157,7 +157,7 @@ if uploaded_files:
         if f not in st.session_state.uploaded_files:
             st.session_state.uploaded_files.append(f)
 
-# Show uploaded files
+# Show uploaded files names & images
 if st.session_state.uploaded_files:
     st.markdown("### Uploaded files:")
     for f in st.session_state.uploaded_files:
@@ -165,7 +165,7 @@ if st.session_state.uploaded_files:
         if f.type.startswith("image/"):
             st.image(f)
 
-# When user submits question
+# When user submits input, query Wikipedia & respond
 if user_input and (not st.session_state.messages or st.session_state.messages[-1][1] != user_input):
     st.session_state.messages.append(("user", user_input))
     with st.spinner("Buddy is thinking..."):
@@ -187,11 +187,9 @@ if user_input and (not st.session_state.messages or st.session_state.messages[-1
 
     st.session_state.messages.append(("bot", summary))
     st.session_state.last_audio_text = summary
+    st.experimental_rerun()  # Clear input and refresh chat after submit
 
-    # Clear input after submit
-    st.experimental_rerun()
-
-# Display chat history
+# Show chat messages
 for role, text in st.session_state.messages:
     if role == "user":
         st.markdown(f"<div class='chat-bubble user-bubble'>{text}</div>", unsafe_allow_html=True)
@@ -200,7 +198,7 @@ for role, text in st.session_state.messages:
         if 'image_url' in locals() and image_url:
             st.image(image_url, width=300)
 
-# Play audio only once per new bot message
+# Play bot reply audio once
 if st.session_state.last_audio_text:
     tts = gTTS(text=st.session_state.last_audio_text, lang='en')
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
@@ -212,6 +210,4 @@ if st.session_state.last_audio_text:
                 <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
             </audio>
         """, unsafe_allow_html=True)
-    # Reset last_audio_text so it does not replay on rerun
     st.session_state.last_audio_text = ""
-
