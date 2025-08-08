@@ -1,16 +1,14 @@
 import streamlit as st
+import wikipedia
+from gtts import gTTS
+import tempfile
 
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
-st.markdown(
-    """
+# CSS for mic + plus icons inside input
+st.markdown("""
     <style>
-    .stTextInput > div {
-        display: flex;
-        align-items: center;
-        position: relative;
-    }
-    .chat-input-container {
+    .chat-input-wrapper {
         position: relative;
         width: 100%;
     }
@@ -37,29 +35,40 @@ st.markdown(
         display: none;
     }
     </style>
-    """,
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
 st.markdown("<h1 style='text-align:center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
 
-# Text input with icons inside
-with st.container():
-    user_input = st.text_input(
-        "",
-        key="chat_input",
-        label_visibility="collapsed",
-        placeholder="Type your question..."
-    )
+# Wrap the input and icons together
+st.markdown('<div class="chat-input-wrapper">', unsafe_allow_html=True)
+user_input = st.text_input(
+    "Ask something...",
+    key="chat_input",
+    label_visibility="collapsed",
+    placeholder="Type your question and press Enter..."
+)
+st.markdown("""
+    <div class="chat-icons">
+        <button class="icon-btn" onclick="alert('🎤 Listening...')">🎤</button>
+        <label for="file-upload" class="icon-btn">➕</label>
+        <input id="file-upload" type="file" accept=".jpg,.jpeg,.png,.txt,.pdf">
+    </div>
+""", unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
-    # Inject mic and plus icons into the same input
-    st.markdown(
-        """
-        <div class="chat-icons">
-            <button class="icon-btn" onclick="alert('🎤 Listening...')">🎤</button>
-            <label for="file-upload" class="icon-btn">➕</label>
-            <input id="file-upload" type="file" accept=".jpg,.jpeg,.png,.txt,.pdf">
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+# If Enter is pressed and input is not empty
+if user_input.strip():
+    try:
+        summary = wikipedia.summary(user_input, sentences=2)
+        st.write(f"**🤖 Bot:** {summary}")
+
+        # Generate voice output (female voice)
+        tts = gTTS(text=summary, lang='en', tld='co.in')
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
+            tts.save(tmp_file.name)
+            st.audio(tmp_file.name, format="audio/mp3")
+
+    except wikipedia.exceptions.DisambiguationError as e:
+        st.error(f"Your query was too broad. Try one of these: {e.options[:5]}")
+    except wikipedia.exceptions.PageError:
+        st.error("Sorry, I couldn't find anything on Wikipedia for that topic.")
