@@ -2,6 +2,7 @@ import streamlit as st
 
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
+# CSS for style and cuteness
 st.markdown(
     """
     <style>
@@ -9,10 +10,6 @@ st.markdown(
         display: flex;
         align-items: center;
         position: relative;
-    }
-    .chat-input-container {
-        position: relative;
-        width: 100%;
     }
     .chat-icons {
         position: absolute;
@@ -32,32 +29,44 @@ st.markdown(
     }
     .icon-btn:hover {
         color: black;
+        transform: scale(1.2);
+        transition: 0.2s;
     }
     input[type="file"] {
         display: none;
+    }
+    .tagline {
+        font-size: 14px;
+        color: #888;
+        text-align: center;
+        margin-top: -10px;
+        margin-bottom: 20px;
+        font-style: italic;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
+# Cute title
 st.markdown("<h1 style='text-align:center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
+st.markdown("<p class='tagline'>✨ Made with 💖 & a sprinkle of Wikipedia magic ✨</p>", unsafe_allow_html=True)
 
-# Text input with icons inside
+# Input box
 with st.container():
     user_input = st.text_input(
         "",
         key="chat_input",
         label_visibility="collapsed",
-        placeholder="Type your question..."
+        placeholder="Type your question... 🦉"
     )
 
-    # Inject mic and plus icons into the same input
+    # Icons with tooltips
     st.markdown(
         """
         <div class="chat-icons">
-            <button class="icon-btn" onclick="alert('🎤 Listening...')">🎤</button>
-            <label for="file-upload" class="icon-btn">➕</label>
+            <button class="icon-btn" title="🎤 Talk to me!">🎤</button>
+            <label for="file-upload" class="icon-btn" title="➕ Add something fun!">➕</label>
             <input id="file-upload" type="file" accept=".jpg,.jpeg,.png,.txt,.pdf">
         </div>
         """,
