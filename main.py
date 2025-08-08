@@ -8,7 +8,7 @@ import random
 
 st.set_page_config(page_title="Ask Meh Anything Buddy...", page_icon="📚", layout="centered")
 
-# Sidebar (unchanged)
+# Sidebar
 with st.sidebar:
     st.markdown("<h2>💖 About Us</h2>", unsafe_allow_html=True)
     st.write("""
@@ -28,7 +28,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("Made with ❤️ using Streamlit & Wikipedia API")
 
-# Session state initialization
+# Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "music_on" not in st.session_state:
@@ -38,7 +38,7 @@ if "uploaded_files" not in st.session_state:
 if "last_audio_text" not in st.session_state:
     st.session_state.last_audio_text = ""
 
-# CSS styles including hidden file uploader + big pink + label
+# CSS Styles + hidden file uploader + label + petals
 st.markdown("""
 <style>
 body {
@@ -118,7 +118,7 @@ img {
 </style>
 """, unsafe_allow_html=True)
 
-# Petals animation
+# Petals animation HTML
 petals_html = "".join([
     f'<div class="petal" style="left:{random.randint(0,100)}%; width:10px; height:10px; animation-duration:{4+i%5}s; animation-delay:{i%3}s;"></div>'
     for i in range(10)
@@ -139,17 +139,15 @@ if st.session_state.music_on:
 # Title
 st.markdown("<h1 style='text-align:center;'>📚 Ask Meh Anything Buddy...</h1>", unsafe_allow_html=True)
 
-# Input and + upload button
+# Input + file uploader in columns
 col1, col2 = st.columns([0.85, 0.15])
 with col1:
     user_input = st.text_input("Ask something...", placeholder="Type your question and press Enter...", key="input_text")
-
 with col2:
     uploaded_files = st.file_uploader("", accept_multiple_files=True, type=["png","jpg","jpeg","pdf","txt"], key="file-uploader", label_visibility="collapsed")
-    # The + sign label for hidden uploader
     st.markdown('<label for="file-uploader" id="upload-label" title="Upload files or images">+</label>', unsafe_allow_html=True)
 
-# Handle uploaded files (store in session state)
+# Handle file uploads and store in session state
 if uploaded_files:
     if not isinstance(uploaded_files, list):
         uploaded_files = [uploaded_files]
@@ -157,7 +155,7 @@ if uploaded_files:
         if f not in st.session_state.uploaded_files:
             st.session_state.uploaded_files.append(f)
 
-# Show uploaded files names & images
+# Show uploaded files list + images
 if st.session_state.uploaded_files:
     st.markdown("### Uploaded files:")
     for f in st.session_state.uploaded_files:
@@ -165,7 +163,7 @@ if st.session_state.uploaded_files:
         if f.type.startswith("image/"):
             st.image(f)
 
-# When user submits input, query Wikipedia & respond
+# Handle user input - Wikipedia query
 if user_input and (not st.session_state.messages or st.session_state.messages[-1][1] != user_input):
     st.session_state.messages.append(("user", user_input))
     with st.spinner("Buddy is thinking..."):
@@ -179,7 +177,7 @@ if user_input and (not st.session_state.messages or st.session_state.messages[-1
                     image_url = img
                     break
         except wikipedia.exceptions.DisambiguationError as e:
-            summary = f"Too many results! Try: {e.options[:5]}"
+            summary = f"Too many results! Try: {', '.join(e.options[:5])}"
             image_url = None
         except wikipedia.exceptions.PageError:
             summary = "Sorry buddy, I couldn't find anything for that."
@@ -187,9 +185,9 @@ if user_input and (not st.session_state.messages or st.session_state.messages[-1
 
     st.session_state.messages.append(("bot", summary))
     st.session_state.last_audio_text = summary
-    st.experimental_rerun()  # Clear input and refresh chat after submit
+    st.experimental_rerun()
 
-# Show chat messages
+# Show chat bubbles
 for role, text in st.session_state.messages:
     if role == "user":
         st.markdown(f"<div class='chat-bubble user-bubble'>{text}</div>", unsafe_allow_html=True)
@@ -198,7 +196,7 @@ for role, text in st.session_state.messages:
         if 'image_url' in locals() and image_url:
             st.image(image_url, width=300)
 
-# Play bot reply audio once
+# Play TTS audio once per bot reply
 if st.session_state.last_audio_text:
     tts = gTTS(text=st.session_state.last_audio_text, lang='en')
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
