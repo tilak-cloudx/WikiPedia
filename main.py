@@ -6,9 +6,10 @@ import base64
 import time
 import random
 
+# --- Page config ---
 st.set_page_config(page_title="Ask Meh Anything Buddy...", page_icon="📚", layout="centered")
 
-# Sidebar
+# --- Sidebar ---
 with st.sidebar:
     st.markdown("<h2>💖 About Us</h2>", unsafe_allow_html=True)
     st.write("""
@@ -16,31 +17,26 @@ with st.sidebar:
     Your cute Wikipedia-powered chatbot with voice, images, music, and petals 🌸.  
     Now with a vintage newspaper vibe 📰.
     """)
+
     st.markdown("<h2>📌 User Guidance</h2>", unsafe_allow_html=True)
     st.write("""
     1. Type your question in the box.  
     2. Press **Enter** to ask.  
     3. Enjoy the petals 🌸, music 🎶, and newspaper-style background.  
     4. Toggle music from the button.  
-    5. Upload files with the glowing + button!  
-    6. Relax and enjoy 💫.
+    5. Relax and enjoy 💫.
     """)
+
     st.markdown("---")
     st.markdown("Made with ❤️ using Streamlit & Wikipedia API")
 
-# Session states
+# --- Session state ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "music_on" not in st.session_state:
     st.session_state.music_on = False
-if "uploaded_files" not in st.session_state:
-    st.session_state.uploaded_files = []
-if "last_audio_text" not in st.session_state:
-    st.session_state.last_audio_text = ""
-if "last_image_url" not in st.session_state:
-    st.session_state.last_image_url = None
 
-# CSS styles
+# --- CSS for background & animations (with added mobile responsiveness) ---
 st.markdown("""
 <style>
 body {
@@ -49,6 +45,8 @@ body {
     color: #222;
     font-family: 'Times New Roman', serif;
 }
+
+/* Sakura petals */
 .petal {
     position: fixed;
     top: -10px;
@@ -62,6 +60,8 @@ body {
     0% { transform: translateY(0) rotate(0deg); }
     100% { transform: translateY(110vh) rotate(360deg); }
 }
+
+/* Chat bubbles */
 .chat-bubble {
     padding: 10px 15px;
     border-radius: 10px;
@@ -80,54 +80,65 @@ body {
     font-family: 'Courier New', monospace;
     white-space: pre-wrap;
 }
+
+/* Typewriter animation */
+@keyframes typing {
+    from { width: 0 }
+    to { width: 100% }
+}
 .typewriter {
     overflow: hidden;
     border-right: .15em solid orange;
     white-space: nowrap;
     animation: typing 3s steps(40, end);
 }
-#upload-label {
-    font-size: 36px;
-    cursor: pointer;
-    color: #ff00de;
-    user-select: none;
-    line-height: 1;
-    padding-left: 10px;
-    vertical-align: middle;
-    font-weight: bold;
-    transition: color 0.3s ease;
-}
-#upload-label:hover {
-    color: #ff4eff;
-}
-#file-uploader {
-    display: none;
-}
-img {
-    max-width: 90vw !important;
-    height: auto !important;
-    border-radius: 6px !important;
-    margin: 10px 0 !important;
-}
+
+/* Responsive adjustments */
 @media only screen and (max-width: 600px) {
     .chat-bubble {
         max-width: 95% !important;
         font-size: 14px !important;
         padding: 8px 12px !important;
         border-radius: 12px !important;
+        word-wrap: break-word !important;
     }
+    input[type="text"] {
+        width: 95% !important;
+        font-size: 16px !important;
+        padding: 10px !important;
+    }
+    .stButton>button {
+        width: 95% !important;
+        font-size: 16px !important;
+        padding: 10px !important;
+    }
+    section[data-testid="stSidebar"] {
+        width: 100% !important;
+        position: relative !important;
+        border-right: none !important;
+        border-bottom: 2px solid #ddd !important;
+        margin-bottom: 1rem !important;
+    }
+}
+
+/* Responsive images */
+img {
+    max-width: 90vw !important;
+    height: auto !important;
+    border-radius: 6px !important;
+    margin: 10px 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# Petals animation
+# --- Create petals ---
 petals_html = "".join([
     f'<div class="petal" style="left:{random.randint(0,100)}%; width:10px; height:10px; animation-duration:{4+i%5}s; animation-delay:{i%3}s;"></div>'
     for i in range(10)
 ])
 st.markdown(petals_html, unsafe_allow_html=True)
 
-# Music toggle
+# --- Music toggle ---
 if st.button("🎶 Toggle Music"):
     st.session_state.music_on = not st.session_state.music_on
 
@@ -138,36 +149,28 @@ if st.session_state.music_on:
         </audio>
     """, unsafe_allow_html=True)
 
-# Title
+# --- Display message ---
+def display_message(role, text):
+    if role == "user":
+        st.markdown(f"""
+        <div class="chat-bubble user-bubble">{text}</div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div class="chat-bubble bot-bubble typewriter">{text}</div>
+        """, unsafe_allow_html=True)
+
+# --- Title ---
 st.markdown("<h1 style='text-align:center;'>📚 Ask Meh Anything Buddy...</h1>", unsafe_allow_html=True)
 
-# Input + uploader
-col1, col2 = st.columns([0.85, 0.15])
-with col1:
-    user_input = st.text_input("Ask something...", placeholder="Type your question and press Enter...", key="input_text")
-with col2:
-    uploaded_files = st.file_uploader("", accept_multiple_files=True, type=["png","jpg","jpeg","pdf","txt"], key="file-uploader", label_visibility="collapsed")
-    st.markdown('<label for="file-uploader" id="upload-label" title="Upload files or images">+</label>', unsafe_allow_html=True)
+# --- User Input ---
+user_input = st.text_input("Ask something...", key="input_text", placeholder="Type your question and press Enter...")
 
-# Handle uploads
-if uploaded_files:
-    if not isinstance(uploaded_files, list):
-        uploaded_files = [uploaded_files]
-    for f in uploaded_files:
-        if f not in st.session_state.uploaded_files:
-            st.session_state.uploaded_files.append(f)
-
-# Show uploaded files
-if st.session_state.uploaded_files:
-    st.markdown("### Uploaded files:")
-    for f in st.session_state.uploaded_files:
-        st.write(f.name)
-        if f.type.startswith("image/"):
-            st.image(f)
-
-# Wikipedia query logic
-if user_input and (not st.session_state.messages or st.session_state.messages[-1][1] != user_input):
+# --- When user submits ---
+if user_input:
     st.session_state.messages.append(("user", user_input))
+    display_message("user", user_input)
+
     with st.spinner("Buddy is thinking..."):
         time.sleep(1)
         try:
@@ -179,28 +182,20 @@ if user_input and (not st.session_state.messages or st.session_state.messages[-1
                     image_url = img
                     break
         except wikipedia.exceptions.DisambiguationError as e:
-            summary = f"Too many results! Try: {', '.join(e.options[:5])}"
+            summary = f"Too many results! Try: {e.options[:5]}"
             image_url = None
         except wikipedia.exceptions.PageError:
             summary = "Sorry buddy, I couldn't find anything for that."
             image_url = None
 
     st.session_state.messages.append(("bot", summary))
-    st.session_state.last_audio_text = summary
-    st.session_state.last_image_url = image_url  # Save image persistently
+    display_message("bot", summary)
 
-# Display chat
-for role, text in st.session_state.messages:
-    if role == "user":
-        st.markdown(f"<div class='chat-bubble user-bubble'>{text}</div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div class='chat-bubble bot-bubble typewriter'>{text}</div>", unsafe_allow_html=True)
-        if st.session_state.last_image_url:
-            st.image(st.session_state.last_image_url, width=300)
+    if image_url:
+        st.image(image_url, width=300)
 
-# Play TTS
-if st.session_state.last_audio_text:
-    tts = gTTS(text=st.session_state.last_audio_text, lang='en')
+    # Voice output
+    tts = gTTS(text=summary, lang='en')
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
         tts.save(tmp_file.name)
         audio_bytes = open(tmp_file.name, "rb").read()
@@ -210,4 +205,7 @@ if st.session_state.last_audio_text:
                 <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
             </audio>
         """, unsafe_allow_html=True)
-    st.session_state.last_audio_text = ""
+
+# --- Display chat history ---
+for role, text in st.session_state.messages:
+    display_message(role, text)s
