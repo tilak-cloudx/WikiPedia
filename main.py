@@ -2,6 +2,7 @@ import streamlit as st
 import wikipedia
 from gtts import gTTS
 import tempfile
+import base64
 
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
@@ -56,17 +57,29 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# If Enter is pressed and input is not empty
+# Process query when Enter is pressed
 if user_input.strip():
     try:
         summary = wikipedia.summary(user_input, sentences=2)
         st.write(f"**🤖 Bot:** {summary}")
 
-        # Generate voice output (female voice)
-        tts = gTTS(text=summary, lang='en', tld='co.in')
+        # Generate female voice output
+        tts = gTTS(text=summary, lang='en', tld='co.in', slow=False)
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
             tts.save(tmp_file.name)
-            st.audio(tmp_file.name, format="audio/mp3")
+            audio_file = tmp_file.name
+
+        # Encode audio to base64 for autoplay
+        with open(audio_file, "rb") as f:
+            audio_bytes = f.read()
+        audio_base64 = base64.b64encode(audio_bytes).decode()
+
+        # Inject hidden autoplay audio
+        st.markdown(f"""
+            <audio autoplay style="display:none;">
+                <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+            </audio>
+        """, unsafe_allow_html=True)
 
     except wikipedia.exceptions.DisambiguationError as e:
         st.error(f"Your query was too broad. Try one of these: {e.options[:5]}")
