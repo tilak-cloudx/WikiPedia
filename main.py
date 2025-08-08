@@ -1,117 +1,98 @@
 import streamlit as st
 import wikipedia
 import speech_recognition as sr
-import pyttsx3
-from io import BytesIO
+from PIL import Image
+import io
 
-# --- Page config ---
+# --- Page Config ---
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
 # --- Custom CSS ---
 st.markdown("""
     <style>
-        .main {
-            background-color: #0f172a;
-            color: white;
+        body {
+            font-family: 'Inter', sans-serif;
         }
-        .stTextInput>div>div>input {
-            background-color: transparent;
-            color: white;
-            border: 1px solid #ef4444;
-            border-radius: 6px;
-            padding-right: 60px;
+        .stTextInput input {
+            border: 2px solid #ef4444;
+            border-radius: 8px;
         }
-        .icon-btn {
-            position: absolute;
-            right: 35px;
-            top: 7px;
-            cursor: pointer;
-        }
-        .file-btn {
-            position: absolute;
-            right: 5px;
-            top: 7px;
-            cursor: pointer;
-        }
-        .love-footer {
-            text-align: center;
-            font-size: 13px;
-            color: #bbb;
+        .bot-message {
+            background-color: #111827;
+            padding: 10px;
+            border-radius: 8px;
             margin-top: 10px;
+            color: white;
         }
-        .love-footer span {
-            color: red;
+        .footer {
+            text-align: center;
+            color: #aaa;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .mic-button, .upload-button {
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 6px;
+            cursor: pointer;
         }
     </style>
 """, unsafe_allow_html=True)
 
-# --- TTS engine ---
-engine = pyttsx3.init()
+# --- Session State ---
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-def speak_text(text):
-    engine.say(text)
-    engine.runAndWait()
-
-# --- Mic input ---
-def mic_input():
+# --- Speech-to-Text ---
+def recognize_speech():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
-        st.toast("🎙 Listening...")
+        st.info("🎙 Listening... Speak now.")
         audio = recognizer.listen(source)
-        try:
-            text = recognizer.recognize_google(audio)
-            return text
-        except:
-            return ""
+    try:
+        text = recognizer.recognize_google(audio)
+        st.success(f"✅ You said: {text}")
+        return text
+    except sr.UnknownValueError:
+        st.error("Sorry, I couldn't understand.")
+    except sr.RequestError:
+        st.error("Speech recognition service error.")
+    return ""
 
-# --- File upload handler ---
-def handle_file_upload(file):
-    if file:
-        st.success(f"📁 Uploaded: {file.name}")
-        # In real app: process file here
+# --- Wikipedia Search ---
+def search_wikipedia(query):
+    try:
+        summary = wikipedia.summary(query, sentences=2)
+        return summary
+    except wikipedia.exceptions.DisambiguationError as e:
+        return f"Your query is ambiguous. Suggestions: {', '.join(e.options[:5])}"
+    except wikipedia.exceptions.PageError:
+        return "No page found for your query."
+    except Exception as e:
+        return f"Error: {str(e)}"
 
-# --- Chat state ---
-if "chat" not in st.session_state:
-    st.session_state.chat = []
-
-# --- Title ---
+# --- Header ---
 st.markdown("<h1 style='text-align:center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
 
-# --- Input container with icons ---
-col1, col2 = st.columns([8, 1])
+# --- Input Row ---
+col1, col2, col3 = st.columns([6, 1, 1])
 with col1:
-    user_input = st.text_input("Ask me something from Wikipedia", label_visibility="collapsed")
+    user_input = st.text_input("", placeholder="Ask me anything from Wikipedia...", label_visibility="collapsed")
 with col2:
-    mic_pressed = st.button("🎤")
-    file_uploaded = st.file_uploader("", type=["jpg", "jpeg", "png", "txt", "pdf"], label_visibility="collapsed")
+    if st.button("🎤", help="Speak"):
+        spoken_text = recognize_speech()
+        if spoken_text:
+            user_input = spoken_text
+with col3:
+    uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png", "txt", "pdf"], label_visibility="collapsed")
 
-if mic_pressed:
-    spoken = mic_input()
-    if spoken:
-        user_input = spoken
-        st.experimental_rerun()
-
-if file_uploaded:
-    handle_file_upload(file_uploaded)
-
-# --- Process input ---
+# --- Process Query ---
 if user_input:
-    try:
-        summary = wikipedia.summary(user_input, sentences=2)
-        st.session_state.chat.append(("user", user_input))
-        st.session_state.chat.append(("bot", summary))
-        speak_text(summary)
-    except wikipedia.exceptions.DisambiguationError as e:
-        msg = f"⚠ Too many results: {e.options[:5]}"
-        st.session_state.chat.append(("bot", msg))
-    except wikipedia.exceptions.PageError:
-        msg = "❌ No page found for your query."
-        st.session_state.chat.append(("bot", msg))
+    bot_reply = search_wikipedia(user_input)
+    st.session_state.messages.append({"user": user_input, "bot": bot_reply})
 
-# --- Display chat ---
-for sender, message in st.session_state.chat:
-    if sender == "user":
-        st.markdown(f"**🧑 You:** {message}")
-    else:
-        st.markdown(f"**🤖 Bot:** {message}")
-        st.markdown('<div class="love-footer">Made with <span>❤️</span> by Likhiii</div>', unsafe_allow_html=True)
+# --- Chat Display ---
+for msg in st.session_state.messages:
+    st.markdown(f"**👤 You:** {msg['user']}")
+    st.markdown(f"<div class='bot-message'>🤖 <b>Bot:</b> {msg['bot']}</div>", unsafe_allow_html=True)
+    st.markdown("<div class='footer'>Made with ❤️ by Likhiii</div>", unsafe_allow_html=True)
