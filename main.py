@@ -5,16 +5,15 @@ import tempfile
 import base64
 import time
 
-# --- PAGE CONFIG ---
-st.set_page_config(page_title="Cute Multi-Source Chatbot", page_icon="📚", layout="centered")
+st.set_page_config(page_title="Cute Wikipedia Chatbot", page_icon="📚", layout="centered")
 
-# --- SESSION STATE ---
+# --- Session state ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "music_on" not in st.session_state:
     st.session_state.music_on = False
 
-# --- CUTE BACKGROUND + PETALS CSS ---
+# --- CSS for background, petals & chat style ---
 st.markdown("""
 <style>
 body {
@@ -28,7 +27,7 @@ body {
     100% { background-position: 0% 50%; }
 }
 
-/* Falling petals */
+/* Sakura petals */
 .petal {
     position: fixed;
     top: -10px;
@@ -54,6 +53,7 @@ body {
 }
 .user-bubble {
     background-color: #ffe4ec;
+    align-self: flex-end;
     color: #333;
 }
 .bot-bubble {
@@ -79,27 +79,26 @@ body {
 </style>
 """, unsafe_allow_html=True)
 
-# --- PETALS HTML ---
-if "petals_added" not in st.session_state:
-    petals_html = "".join([
-        f'<div class="petal" style="left:{i*10}%; width:10px; height:10px; animation-duration:{4+i%5}s; animation-delay:{i%3}s;"></div>'
-        for i in range(10)
-    ])
-    st.markdown(petals_html, unsafe_allow_html=True)
-    st.session_state.petals_added = True
+# --- Create multiple petals ---
+petals_html = "".join([
+    f'<div class="petal" style="left:{i*10}%; width:10px; height:10px; animation-duration:{4+i%5}s; animation-delay:{i%3}s;"></div>'
+    for i in range(10)
+])
+st.markdown(petals_html, unsafe_allow_html=True)
 
-# --- MUSIC TOGGLE ---
+# --- Music toggle ---
 if st.button("🎶 Toggle Music"):
     st.session_state.music_on = not st.session_state.music_on
 
 if st.session_state.music_on:
-    st.markdown("""
+    music_html = """
         <audio autoplay loop>
             <source src="https://www.bensound.com/bensound-music/bensound-sunny.mp3" type="audio/mp3">
         </audio>
-    """, unsafe_allow_html=True)
+    """
+    st.markdown(music_html, unsafe_allow_html=True)
 
-# --- DISPLAY CHAT BUBBLES ---
+# --- Function to display chat bubbles ---
 def display_message(role, text):
     if role == "user":
         st.markdown(f"""
@@ -116,44 +115,58 @@ def display_message(role, text):
         </div>
         """, unsafe_allow_html=True)
 
-# --- TITLE ---
-st.markdown("<h1 style='text-align:center;'>📚 Cute Multi-Source Chatbot</h1>", unsafe_allow_html=True)
+# --- Title ---
+st.markdown("<h1 style='text-align:center;'>📚 Cute Wikipedia Chatbot</h1>", unsafe_allow_html=True)
 
-# --- USER INPUT ---
+# --- User Input ---
 user_input = st.text_input("Ask something...", placeholder="Type your question and press Enter...")
 
-# --- PROCESS USER INPUT ---
+# --- When user submits ---
 if user_input:
+    # Save & display user message
     st.session_state.messages.append(("user", user_input))
     display_message("user", user_input)
 
+    # Bot "typing"
     with st.spinner("Bot is typing..."):
         time.sleep(1)
-
-        # Default to Wikipedia search
         try:
-            summary = wikipedia.summary(user_input, sentences=2)
+            page = wikipedia.page(user_input)
+            summary = page.summary[:500] + "..."
+            # Find a good image
+            image_url = None
+            for img in page.images:
+                if img.lower().endswith((".jpg", ".jpeg", ".png")) and "svg" not in img.lower():
+                    image_url = img
+                    break
         except wikipedia.exceptions.DisambiguationError as e:
             summary = f"Your query was too broad. Try one of these: {e.options[:5]}"
+            image_url = None
         except wikipedia.exceptions.PageError:
             summary = "Sorry, I couldn't find anything on Wikipedia for that topic."
+            image_url = None
 
-        # Add bot reply
-        st.session_state.messages.append(("bot", summary))
-        display_message("bot", summary)
+    # Add bot message to history
+    st.session_state.messages.append(("bot", summary))
+    display_message("bot", summary)
 
-        # Voice reply
-        tts = gTTS(text=summary, lang='en', tld='co.in')
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
-            tts.save(tmp_file.name)
-            audio_bytes = open(tmp_file.name, "rb").read()
-            audio_base64 = base64.b64encode(audio_bytes).decode()
-            st.markdown(f"""
-                <audio autoplay>
-                    <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                </audio>
-            """, unsafe_allow_html=True)
+    # Show image if found
+    if image_url:
+        st.image(image_url, width=300)
 
-# --- DISPLAY CHAT HISTORY ---
+    # Voice output
+    tts = gTTS(text=summary, lang='en', tld='co.in')
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
+        tts.save(tmp_file.name)
+        audio_bytes = open(tmp_file.name, "rb").read()
+        audio_base64 = base64.b64encode(audio_bytes).decode()
+        audio_html = f"""
+            <audio autoplay>
+                <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+            </audio>
+        """
+        st.markdown(audio_html, unsafe_allow_html=True)
+
+# --- Display chat history ---
 for role, text in st.session_state.messages:
     display_message(role, text)
