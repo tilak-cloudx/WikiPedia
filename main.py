@@ -1,158 +1,108 @@
 import streamlit as st
 import wikipedia
-from gtts import gTTS
-import tempfile
-import base64
 
+# --- PAGE CONFIG ---
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
-# 🌸 CSS styling
+# --- CUSTOM CSS ---
 st.markdown("""
-    <style>
-    /* Input wrapper */
-    .chat-input-wrapper {
-        position: relative;
-        width: 100%;
-    }
-    .chat-icons {
-        position: absolute;
-        right: 8px;
-        top: 50%;
-        transform: translateY(-50%);
-        display: flex;
-        gap: 6px;
-    }
-    .icon-btn {
-        background: none;
-        border: none;
-        font-size: 18px;
-        cursor: pointer;
-        color: #777;
-        padding: 4px;
-        transition: 0.3s;
-    }
-    .icon-btn:hover {
-        color: #ff69b4;
-        transform: scale(1.1);
-    }
-    input[type="file"] {
-        display: none;
-    }
+<style>
+/* Center everything */
+.main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
 
-    /* Bot chat bubble */
-    .bot-bubble {
-        background: #fce4ec;
-        padding: 10px 15px;
-        border-radius: 18px;
-        display: inline-block;
-        margin-top: 10px;
-        font-size: 15px;
-        animation: fadeIn 0.4s ease-in-out;
-    }
+/* Chat input */
+.stTextInput > div > div > input {
+    background-color: #1f2937;
+    color: white;
+    border-radius: 8px;
+    border: 1px solid #4ade80;
+}
 
-    /* Fade in effect */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(5px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+/* Bot message style */
+.bot-message {
+    background-color: #1f2937;
+    color: #f9fafb;
+    padding: 12px 18px;
+    border-radius: 15px;
+    border: 1px solid #4ade80;
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+    font-size: 16px;
+    line-height: 1.5;
+    max-width: 500px;
+    margin-top: 10px;
+}
 
-    /* Footer style */
-    .footer {
-        position: fixed;
-        bottom: 5px;
-        left: 0;
-        width: 100%;
-        text-align: center;
-        font-size: 18px;
-        font-weight: bold;
-        letter-spacing: 0.5px;
-        background: transparent;
-        color: white;
-        text-shadow: 0 0 6px rgba(255,255,255,0.8);
-    }
-    .footer span {
-        background: linear-gradient(45deg, #ff66b2, #ffcc00, #66ffcc, #6699ff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        animation: gradientMove 3s infinite linear;
-        background-size: 300%;
-    }
-    @keyframes gradientMove {
-        0% { background-position: 0% 50%; }
-        100% { background-position: 100% 50%; }
-    }
+/* Footer */
+.footer {
+    text-align: center;
+    margin-top: 50px;
+    font-size: 18px;
+    color: white;
+    font-weight: bold;
+    text-shadow: 0px 0px 5px rgba(255,255,255,0.8);
+}
 
-    /* Floating emojis */
-    .floating-emoji {
-        position: fixed;
-        font-size: 20px;
-        animation: floatUp 6s infinite ease-in-out;
-        opacity: 0.6;
-    }
-    @keyframes floatUp {
-        0% { transform: translateY(100vh); opacity: 0; }
-        20% { opacity: 1; }
-        100% { transform: translateY(-10vh); opacity: 0; }
-    }
-    </style>
+/* Heart animation */
+.heart {
+    color: red;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+/* Sparkles */
+@keyframes sparkle {
+    0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+    50% { opacity: 0.5; transform: translateY(-10px) rotate(45deg); }
+    100% { opacity: 1; transform: translateY(0) rotate(0deg); }
+}
+.sparkle {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    background: gold;
+    border-radius: 50%;
+    animation: sparkle 2s infinite ease-in-out;
+}
+.sparkle:nth-child(1) { top: 20%; left: 15%; animation-delay: 0s; }
+.sparkle:nth-child(2) { top: 60%; left: 80%; animation-delay: 0.5s; }
+.sparkle:nth-child(3) { top: 40%; left: 50%; animation-delay: 1s; }
+</style>
 """, unsafe_allow_html=True)
 
-# 🎯 Title
-st.markdown("<h1 style='text-align:center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
+# --- TITLE ---
+st.markdown("<h1 style='text-align: center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
 
-# 💬 Chat input with icons
-st.markdown('<div class="chat-input-wrapper">', unsafe_allow_html=True)
-user_input = st.text_input(
-    "Ask something...",
-    key="chat_input",
-    label_visibility="collapsed",
-    placeholder="Type your question and press Enter..."
-)
-st.markdown("""
-    <div class="chat-icons">
-        <button class="icon-btn" onclick="alert('🎤 Listening...')">🎤</button>
-        <label for="file-upload" class="icon-btn">➕</label>
-        <input id="file-upload" type="file" accept=".jpg,.jpeg,.png,.txt,.pdf">
-    </div>
-""", unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
+# --- INPUT ---
+query = st.text_input("")
 
-# 🤖 Process user input
-if user_input.strip():
+# --- WIKIPEDIA SEARCH ---
+if query:
     try:
-        summary = wikipedia.summary(user_input, sentences=2)
-        st.markdown(f"<div class='bot-bubble'>🤖 {summary}</div>", unsafe_allow_html=True)
+        summary = wikipedia.summary(query, sentences=2)
+        st.markdown(f"<div class='bot-message'>🤖 {summary}</div>", unsafe_allow_html=True)
+    except:
+        st.markdown("<div class='bot-message'>⚠️ Sorry, I couldn't find anything.</div>", unsafe_allow_html=True)
 
-        # 🔊 TTS response
-        tts = gTTS(text=summary, lang='en', tld='co.in')
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
-            tts.save(tmp_file.name)
-
-            audio_bytes = open(tmp_file.name, "rb").read()
-            audio_base64 = base64.b64encode(audio_bytes).decode()
-            audio_html = f"""
-                <audio autoplay>
-                    <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                </audio>
-            """
-            st.markdown(audio_html, unsafe_allow_html=True)
-
-    except wikipedia.exceptions.DisambiguationError as e:
-        st.error(f"Your query was too broad. Try one of these: {e.options[:5]}")
-    except wikipedia.exceptions.PageError:
-        st.error("Sorry, I couldn't find anything on Wikipedia for that topic.")
-
-# 🌸 Floating emojis
-emoji_positions = ["10%", "30%", "50%", "70%", "90%"]
-for i, pos in enumerate(emoji_positions):
-    st.markdown(
-        f"<div class='floating-emoji' style='left:{pos}; animation-delay:{i}s;'>✨</div>",
-        unsafe_allow_html=True
-    )
-
-# 💖 Footer
+# --- SPARKLES ---
 st.markdown("""
-    <div class="footer">
-        Made with ❤️ by <span>Likhiii</span>
-    </div>
+<div class="sparkle"></div>
+<div class="sparkle"></div>
+<div class="sparkle"></div>
+""", unsafe_allow_html=True)
+
+# --- FOOTER ---
+st.markdown("""
+<div class="footer">
+    Made with <span class="heart">❤️</span> by <span style="color:#4ade80;">Likhiii</span>
+</div>
 """, unsafe_allow_html=True)
