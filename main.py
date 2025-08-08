@@ -36,7 +36,7 @@ if "messages" not in st.session_state:
 if "music_on" not in st.session_state:
     st.session_state.music_on = False
 
-# --- CSS for background & animations ---
+# --- CSS: chat bubbles, petals, typewriter, mobile ---
 st.markdown("""
 <style>
 body {
@@ -69,28 +69,35 @@ body {
     max-width: 80%;
     display: inline-block;
     word-wrap: break-word;
+    animation: fadeIn 0.3s ease-in;
 }
 .user-bubble {
     background-color: #fce4ec;
     color: #222;
+    align-self: flex-end;
 }
 .bot-bubble {
     background-color: #fff3e0;
     color: #222;
     font-family: 'Courier New', monospace;
     white-space: pre-wrap;
+    animation: typing 2s steps(40, end), blink-caret 0.75s step-end infinite;
 }
 
-/* Typewriter animation */
+/* Typewriter effect */
 @keyframes typing {
     from { width: 0 }
     to { width: 100% }
 }
-.typewriter {
-    overflow: hidden;
-    border-right: .15em solid orange;
-    white-space: nowrap;
-    animation: typing 3s steps(40, end);
+@keyframes blink-caret {
+    from, to { border-color: transparent }
+    50% { border-color: orange }
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Responsive adjustments */
@@ -121,7 +128,6 @@ body {
     }
 }
 
-/* Responsive images */
 img {
     max-width: 90vw !important;
     height: auto !important;
@@ -149,16 +155,12 @@ if st.session_state.music_on:
         </audio>
     """, unsafe_allow_html=True)
 
-# --- Display message ---
+# --- Display chat bubble ---
 def display_message(role, text):
-    if role == "user":
-        st.markdown(f"""
-        <div class="chat-bubble user-bubble">{text}</div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div class="chat-bubble bot-bubble typewriter">{text}</div>
-        """, unsafe_allow_html=True)
+    bubble_class = "user-bubble" if role == "user" else "bot-bubble"
+    st.markdown(f"""
+    <div class="chat-bubble {bubble_class}">{text}</div>
+    """, unsafe_allow_html=True)
 
 # --- Title ---
 st.markdown("<h1 style='text-align:center;'>📚 Ask Meh Anything Buddy...</h1>", unsafe_allow_html=True)
@@ -206,6 +208,6 @@ if user_input:
             </audio>
         """, unsafe_allow_html=True)
 
-# --- Display chat history ---
+# --- Display chat history on refresh ---
 for role, text in st.session_state.messages:
     display_message(role, text)
