@@ -20,7 +20,7 @@ with st.sidebar:
     st.markdown("<h2>📌 User Guidance</h2>", unsafe_allow_html=True)
     st.write("""
     1. Type your question in the box.  
-    2. Press **Enter** to ask.  
+    2. Press **Enter** or click **Submit**.  
     3. Enjoy the pastel bubbles, music 🎶, and images.  
     4. Toggle music on/off from the button.  
     5. Sit back and enjoy the cuteness 💫.
@@ -34,8 +34,6 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "music_on" not in st.session_state:
     st.session_state.music_on = False
-if "input_text" not in st.session_state:
-    st.session_state.input_text = ""
 
 # --- CSS for Background & Chat Style (Mobile Friendly) ---
 st.markdown("""
@@ -157,18 +155,13 @@ def display_message(role, text):
 # --- Title ---
 st.markdown("<h1 style='text-align:center;'>📚 Ask Meh Anything Buddy...</h1>", unsafe_allow_html=True)
 
-# --- Clear Input After Sending ---
-def clear_input():
-    st.session_state.input_text = ""
-
-# --- User Input ---
-user_input = st.text_input("Ask something...",
-                           value=st.session_state.input_text,
-                           key="input_text",
-                           on_change=clear_input)
+# --- Input Form (Fixes Enter Key Issue) ---
+with st.form(key="ask_form", clear_on_submit=True):
+    user_input = st.text_input("Ask something...")
+    submitted = st.form_submit_button("Ask")
 
 # --- Process Input ---
-if user_input and user_input.strip():
+if submitted and user_input.strip():
     st.session_state.messages.append(("user", user_input))
     display_message("user", user_input)
 
@@ -208,6 +201,6 @@ if user_input and user_input.strip():
         """
         st.markdown(audio_html, unsafe_allow_html=True)
 
-# --- Display Chat History (Mobile Friendly) ---
+# --- Display Chat History ---
 for role, text in st.session_state.messages:
     display_message(role, text)
