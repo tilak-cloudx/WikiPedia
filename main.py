@@ -1,35 +1,40 @@
 import streamlit as st
-from io import BytesIO
-from PIL import Image
 
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
 st.markdown(
     """
     <style>
-    .chat-input-row {
+    .stTextInput > div {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-top: 20px;
+        position: relative;
     }
-    .chat-textbox {
-        flex: 1;
+    .chat-input-container {
+        position: relative;
+        width: 100%;
+    }
+    .chat-icons {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        gap: 6px;
     }
     .icon-btn {
-        background: #2d2f38;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
+        background: none;
+        border: none;
         font-size: 18px;
-        color: white;
+        cursor: pointer;
+        color: #555;
+        padding: 4px;
     }
     .icon-btn:hover {
-        background: #3d3f48;
+        color: black;
+    }
+    input[type="file"] {
+        display: none;
     }
     </style>
     """,
@@ -37,46 +42,24 @@ st.markdown(
 )
 
 st.markdown("<h1 style='text-align:center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Ask anything, talk it out 🎤, or add a file ➕ — let’s explore Wikipedia!</p>", unsafe_allow_html=True)
 
-# --- Chat Input Row ---
-st.markdown('<div class="chat-input-row">', unsafe_allow_html=True)
+# Text input with icons inside
+with st.container():
+    user_input = st.text_input(
+        "",
+        key="chat_input",
+        label_visibility="collapsed",
+        placeholder="Type your question..."
+    )
 
-# Textbox (fixed: no duplicate label)
-user_input = st.text_input(
-    "",
-    key="chat_input",
-    label_visibility="collapsed",
-    placeholder="Type your question...",
-    help="Ask me something about Wikipedia"
-)
-
-# Mic Button
-st.markdown('<div class="icon-btn" onclick="alert(\'Listening...\')">🎤</div>', unsafe_allow_html=True)
-
-# Plus Button (hidden file uploader)
-uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png", "txt", "pdf"], key="file_upload", label_visibility="collapsed")
-plus_icon_html = """
-<script>
-const uploader = window.parent.document.querySelector('input[type="file"]');
-function triggerUpload(){ uploader.click(); }
-</script>
-<div class="icon-btn" onclick="triggerUpload()">➕</div>
-"""
-st.markdown(plus_icon_html, unsafe_allow_html=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-# --- Handle Uploaded File ---
-if uploaded_file:
-    st.success(f"📂 File '{uploaded_file.name}' uploaded!")
-    if uploaded_file.type.startswith("image/"):
-        img = Image.open(uploaded_file)
-        st.image(img, caption=uploaded_file.name, use_column_width=True)
-    else:
-        st.write("File uploaded successfully.")
-
-# --- Handle User Input ---
-if user_input:
-    st.write(f"🔍 Searching Wikipedia for: **{user_input}**")
-    # Your Wikipedia API call here
+    # Inject mic and plus icons into the same input
+    st.markdown(
+        """
+        <div class="chat-icons">
+            <button class="icon-btn" onclick="alert('🎤 Listening...')">🎤</button>
+            <label for="file-upload" class="icon-btn">➕</label>
+            <input id="file-upload" type="file" accept=".jpg,.jpeg,.png,.txt,.pdf">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
