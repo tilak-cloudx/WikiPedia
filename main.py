@@ -16,7 +16,6 @@ with st.sidebar:
     I'm your friendly bot that answers your questions from Wikipedia in the most adorable way possible.  
     You can listen to my answers, see images, and enjoy falling sakura petals 🌸.
     """)
-
     st.markdown("<h2>📌 User Guidance</h2>", unsafe_allow_html=True)
     st.write("""
     1. Type your question in the box.  
@@ -25,7 +24,6 @@ with st.sidebar:
     4. Toggle music on/off from the button.  
     5. Sit back and enjoy the cuteness 💫.
     """)
-
     st.markdown("---")
     st.markdown("Made with ❤️ using Streamlit & Wikipedia API")
 
@@ -34,6 +32,8 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "music_on" not in st.session_state:
     st.session_state.music_on = False
+if "input_text" not in st.session_state:
+    st.session_state.input_text = ""
 
 # --- CSS Styles ---
 st.markdown("""
@@ -136,11 +136,16 @@ def display_message(role, text):
 st.markdown("<h1 style='text-align:center;'>📚 Ask Meh Anything Buddy...</h1>", unsafe_allow_html=True)
 
 # --- Input Box ---
-user_input = st.text_input("Ask something...", placeholder="Type your question and press Enter...", key="input_box")
+user_input = st.text_input(
+    "Ask something...",
+    placeholder="Type your question and press Enter...",
+    value=st.session_state.input_text,
+    key="text_box"
+)
 
 # --- Handle User Query ---
-if user_input:
-    # Save user msg
+if user_input and user_input != st.session_state.input_text:
+    st.session_state.input_text = user_input  # remember last input
     st.session_state.messages.append(("user", user_input))
     display_message("user", user_input)
 
@@ -161,14 +166,12 @@ if user_input:
             summary = "Sorry, I couldn't find anything on Wikipedia for that topic."
             image_url = None
 
-    # Bot response
     st.session_state.messages.append(("bot", summary))
     display_message("bot", summary)
 
     if image_url:
         st.image(image_url, width=300)
 
-    # Voice output
     tts = gTTS(text=summary, lang='en', tld='co.in')
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
         tts.save(tmp_file.name)
@@ -181,8 +184,8 @@ if user_input:
         """
         st.markdown(audio_html, unsafe_allow_html=True)
 
-    # Clear input
-    st.session_state.input_box = ""
+    # Reset text for next question
+    st.session_state.input_text = ""
     st.experimental_rerun()
 
 # --- Show Chat History ---
