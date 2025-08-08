@@ -1,108 +1,107 @@
 import streamlit as st
 import wikipedia
+from gtts import gTTS
+import tempfile
+import base64
 
-# --- PAGE CONFIG ---
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
-# --- CUSTOM CSS ---
+# CSS for mic + plus icons inside input & footer
 st.markdown("""
-<style>
-/* Center everything */
-.main {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Chat input */
-.stTextInput > div > div > input {
-    background-color: #1f2937;
-    color: white;
-    border-radius: 8px;
-    border: 1px solid #4ade80;
-}
-
-/* Bot message style */
-.bot-message {
-    background-color: #1f2937;
-    color: #f9fafb;
-    padding: 12px 18px;
-    border-radius: 15px;
-    border: 1px solid #4ade80;
-    box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
-    font-size: 16px;
-    line-height: 1.5;
-    max-width: 500px;
-    margin-top: 10px;
-}
-
-/* Footer */
-.footer {
-    text-align: center;
-    margin-top: 50px;
-    font-size: 18px;
-    color: white;
-    font-weight: bold;
-    text-shadow: 0px 0px 5px rgba(255,255,255,0.8);
-}
-
-/* Heart animation */
-.heart {
-    color: red;
-    animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.3); }
-    100% { transform: scale(1); }
-}
-
-/* Sparkles */
-@keyframes sparkle {
-    0% { opacity: 1; transform: translateY(0) rotate(0deg); }
-    50% { opacity: 0.5; transform: translateY(-10px) rotate(45deg); }
-    100% { opacity: 1; transform: translateY(0) rotate(0deg); }
-}
-.sparkle {
-    position: fixed;
-    width: 8px;
-    height: 8px;
-    background: gold;
-    border-radius: 50%;
-    animation: sparkle 2s infinite ease-in-out;
-}
-.sparkle:nth-child(1) { top: 20%; left: 15%; animation-delay: 0s; }
-.sparkle:nth-child(2) { top: 60%; left: 80%; animation-delay: 0.5s; }
-.sparkle:nth-child(3) { top: 40%; left: 50%; animation-delay: 1s; }
-</style>
+    <style>
+    .chat-input-wrapper {
+        position: relative;
+        width: 100%;
+    }
+    .chat-icons {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        gap: 6px;
+    }
+    .icon-btn {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        color: #555;
+        padding: 4px;
+    }
+    .icon-btn:hover {
+        color: black;
+    }
+    input[type="file"] {
+        display: none;
+    }
+    /* Footer style */
+    .footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        padding: 8px;
+        background-color: transparent; /* Blend with background */
+        font-size: 14px;
+        color: white;  /* Bright text */
+        font-weight: bold;
+        letter-spacing: 0.5px;
+        text-shadow: 0px 0px 3px rgba(0,0,0,0.4); /* Slight glow */
+    }
+    </style>
 """, unsafe_allow_html=True)
 
-# --- TITLE ---
-st.markdown("<h1 style='text-align: center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
+# Title
+st.markdown("<h1 style='text-align:center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
 
-# --- INPUT ---
-query = st.text_input("")
+# Chat input with icons
+st.markdown('<div class="chat-input-wrapper">', unsafe_allow_html=True)
+user_input = st.text_input(
+    "Ask something...",
+    key="chat_input",
+    label_visibility="collapsed",
+    placeholder="Type your question and press Enter..."
+)
+st.markdown("""
+    <div class="chat-icons">
+        <button class="icon-btn" onclick="alert('🎤 Listening...')">🎤</button>
+        <label for="file-upload" class="icon-btn">➕</label>
+        <input id="file-upload" type="file" accept=".jpg,.jpeg,.png,.txt,.pdf">
+    </div>
+""", unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
-# --- WIKIPEDIA SEARCH ---
-if query:
+# Process input
+if user_input.strip():
     try:
-        summary = wikipedia.summary(query, sentences=2)
-        st.markdown(f"<div class='bot-message'>🤖 {summary}</div>", unsafe_allow_html=True)
-    except:
-        st.markdown("<div class='bot-message'>⚠️ Sorry, I couldn't find anything.</div>", unsafe_allow_html=True)
+        summary = wikipedia.summary(user_input, sentences=2)
+        st.write(f"**🤖 Bot:** {summary}")
 
-# --- SPARKLES ---
-st.markdown("""
-<div class="sparkle"></div>
-<div class="sparkle"></div>
-<div class="sparkle"></div>
-""", unsafe_allow_html=True)
+        # Generate TTS
+        tts = gTTS(text=summary, lang='en', tld='co.in')
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
+            tts.save(tmp_file.name)
 
-# --- FOOTER ---
+            # Auto-play audio without play button
+            audio_bytes = open(tmp_file.name, "rb").read()
+            audio_base64 = base64.b64encode(audio_bytes).decode()
+            audio_html = f"""
+                <audio autoplay>
+                    <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                </audio>
+            """
+            st.markdown(audio_html, unsafe_allow_html=True)
+
+    except wikipedia.exceptions.DisambiguationError as e:
+        st.error(f"Your query was too broad. Try one of these: {e.options[:5]}")
+    except wikipedia.exceptions.PageError:
+        st.error("Sorry, I couldn't find anything on Wikipedia for that topic.")
+
+# Footer
 st.markdown("""
-<div class="footer">
-    Made with <span class="heart">❤️</span> by <span style="color:#4ade80;">Likhiii</span>
-</div>
+    <div class="footer">
+        Made with ❤️ by <b>Likhiii</b>
+    </div>
 """, unsafe_allow_html=True)
