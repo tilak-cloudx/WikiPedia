@@ -37,19 +37,28 @@ if "music_on" not in st.session_state:
 if "input_text" not in st.session_state:
     st.session_state.input_text = ""
 
-# --- CSS for Background & Chat Style ---
+# --- CSS for Background & Chat Style (Mobile Friendly) ---
 st.markdown("""
 <style>
+html, body, [class*="css"]  {
+    margin: 0;
+    padding: 0;
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    overflow-x: hidden;
+}
+
 body {
     background: linear-gradient(-45deg, #ffdde1, #ee9ca7, #c1c8e4, #fbc2eb, #a1c4fd);
     background-size: 400% 400%;
     animation: gradientShift 12s ease infinite;
 }
+
 @keyframes gradientShift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
+
 .petal {
     position: fixed;
     top: -10px;
@@ -59,10 +68,12 @@ body {
     animation: fall linear infinite;
     z-index: 9999;
 }
+
 @keyframes fall {
     0% { transform: translateY(0) rotate(0deg); }
     100% { transform: translateY(110vh) rotate(360deg); }
 }
+
 .chat-bubble {
     padding: 10px 15px;
     border-radius: 20px;
@@ -70,28 +81,36 @@ body {
     max-width: 80%;
     display: inline-block;
     animation: fadeIn 0.3s ease-in-out;
+    word-wrap: break-word;
+    font-size: 16px;
 }
+
 .user-bubble {
     background-color: #ffe4ec;
     align-self: flex-end;
     color: #333;
 }
+
 .bot-bubble {
     background-color: #e4f0ff;
     color: #333;
 }
+
 .avatar {
-    width: 40px;
-    height: 40px;
+    width: 35px;
+    height: 35px;
     border-radius: 50%;
     display: inline-block;
     vertical-align: middle;
     margin-right: 8px;
 }
+
 .chat-row {
     display: flex;
     align-items: flex-start;
+    flex-wrap: wrap;
 }
+
 @keyframes fadeIn {
     from {opacity: 0; transform: translateY(5px);}
     to {opacity: 1; transform: translateY(0);}
@@ -118,7 +137,7 @@ if st.session_state.music_on:
     """
     st.markdown(music_html, unsafe_allow_html=True)
 
-# --- Chat Bubble Display ---
+# --- Display Chat Bubble ---
 def display_message(role, text):
     if role == "user":
         st.markdown(f"""
@@ -164,7 +183,7 @@ if user_input and user_input.strip():
                     image_url = img
                     break
         except wikipedia.exceptions.DisambiguationError as e:
-            summary = f"Your query was too broad. Try one of these: {e.options[:5]}"
+            summary = f"Your query was too broad. Try one of these: {', '.join(e.options[:5])}"
             image_url = None
         except wikipedia.exceptions.PageError:
             summary = "Sorry, I couldn't find anything on Wikipedia for that topic."
@@ -189,6 +208,6 @@ if user_input and user_input.strip():
         """
         st.markdown(audio_html, unsafe_allow_html=True)
 
-# --- Display Chat History ---
+# --- Display Chat History (Mobile Friendly) ---
 for role, text in st.session_state.messages:
     display_message(role, text)
