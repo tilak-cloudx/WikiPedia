@@ -6,38 +6,37 @@ import base64
 
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
-# CSS for mic + plus icons, footer glow, and floating sparkles
+# CSS for cute animated background, sparkles, hearts, and glowing footer
 st.markdown("""
     <style>
-    /* Chat input styling */
-    .chat-input-wrapper {
-        position: relative;
-        width: 100%;
+    /* Animated pastel gradient background */
+    body {
+        background: linear-gradient(-45deg, #ffdde1, #ee9ca7, #c1c8e4, #fbc2eb, #a1c4fd);
+        background-size: 400% 400%;
+        animation: gradientShift 12s ease infinite;
+        overflow-x: hidden;
     }
-    .chat-icons {
-        position: absolute;
-        right: 8px;
-        top: 50%;
-        transform: translateY(-50%);
-        display: flex;
-        gap: 6px;
-    }
-    .icon-btn {
-        background: none;
-        border: none;
-        font-size: 18px;
-        cursor: pointer;
-        color: #555;
-        padding: 4px;
-    }
-    .icon-btn:hover {
-        color: black;
-    }
-    input[type="file"] {
-        display: none;
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
     }
 
-    /* Footer style with white glow */
+    /* Floating emojis */
+    .float-emoji {
+        position: fixed;
+        bottom: -20px;
+        animation: floatUp linear infinite;
+        opacity: 0.9;
+        z-index: 0;
+        pointer-events: none;
+    }
+    @keyframes floatUp {
+        0% { transform: translateY(0) scale(1); opacity: 1; }
+        100% { transform: translateY(-110vh) scale(0.8); opacity: 0; }
+    }
+
+    /* Footer with strong white glow */
     .footer {
         position: fixed;
         bottom: 0;
@@ -50,46 +49,30 @@ st.markdown("""
         color: white;
         font-weight: bold;
         letter-spacing: 0.5px;
-        text-shadow: 0px 0px 8px white, 0px 0px 12px white; /* Strong white glow */
+        text-shadow: 0px 0px 10px white, 0px 0px 14px white;
         z-index: 100;
-    }
-
-    /* Sparkles container */
-    .sparkle {
-        position: fixed;
-        bottom: -20px;
-        font-size: 18px;
-        animation: rise 6s linear infinite;
-        opacity: 0.8;
-        z-index: 0;
-    }
-
-    /* Floating animation */
-    @keyframes rise {
-        0% {
-            transform: translateY(0) scale(1);
-            opacity: 0.9;
-        }
-        100% {
-            transform: translateY(-100vh) scale(0.8);
-            opacity: 0;
-        }
     }
     </style>
 
     <script>
-    // Create sparkles dynamically
     document.addEventListener("DOMContentLoaded", function(){
-        const sparkleCount = 15; // Number of sparkles
-        for (let i = 0; i < sparkleCount; i++) {
-            let sparkle = document.createElement("div");
-            sparkle.className = "sparkle";
-            sparkle.innerHTML = "✨";
-            sparkle.style.left = Math.random() * 100 + "vw";
-            sparkle.style.animationDuration = (4 + Math.random() * 4) + "s";
-            sparkle.style.fontSize = (14 + Math.random() * 10) + "px";
-            document.body.appendChild(sparkle);
+        const emojis = ["✨", "💖", "🌸", "💫", "🌟", "💕", "🦋"];
+        const emojiCount = 25;
+
+        function createEmoji(){
+            let emoji = document.createElement("div");
+            emoji.className = "float-emoji";
+            emoji.innerHTML = emojis[Math.floor(Math.random() * emojis.length)];
+            emoji.style.left = Math.random() * 100 + "vw";
+            emoji.style.fontSize = (18 + Math.random() * 18) + "px";
+            emoji.style.animationDuration = (5 + Math.random() * 5) + "s";
+            document.body.appendChild(emoji);
+
+            setTimeout(() => { emoji.remove(); }, 10000);
         }
+
+        // Keep generating emojis forever
+        setInterval(createEmoji, 500);
     });
     </script>
 """, unsafe_allow_html=True)
@@ -98,7 +81,7 @@ st.markdown("""
 st.markdown("<h1 style='text-align:center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
 
 # Chat input with icons
-st.markdown('<div class="chat-input-wrapper">', unsafe_allow_html=True)
+st.markdown('<div class="chat-input-wrapper" style="position: relative; width: 100%;">', unsafe_allow_html=True)
 user_input = st.text_input(
     "Ask something...",
     key="chat_input",
@@ -106,10 +89,10 @@ user_input = st.text_input(
     placeholder="Type your question and press Enter..."
 )
 st.markdown("""
-    <div class="chat-icons">
-        <button class="icon-btn" onclick="alert('🎤 Listening...')">🎤</button>
-        <label for="file-upload" class="icon-btn">➕</label>
-        <input id="file-upload" type="file" accept=".jpg,.jpeg,.png,.txt,.pdf">
+    <div style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex; gap: 6px;">
+        <button class="icon-btn" onclick="alert('🎤 Listening...')" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #555; padding: 4px;">🎤</button>
+        <label for="file-upload" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #555; padding: 4px;">➕</label>
+        <input id="file-upload" type="file" accept=".jpg,.jpeg,.png,.txt,.pdf" style="display: none;">
     </div>
 """, unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
@@ -140,7 +123,7 @@ if user_input.strip():
     except wikipedia.exceptions.PageError:
         st.error("Sorry, I couldn't find anything on Wikipedia for that topic.")
 
-# Footer with white glow
+# Footer
 st.markdown("""
     <div class="footer">
         Made with ❤️ by <b>Likhiii</b>
