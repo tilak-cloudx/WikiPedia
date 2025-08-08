@@ -37,6 +37,8 @@ if "uploaded_files" not in st.session_state:
     st.session_state.uploaded_files = []
 if "last_audio_text" not in st.session_state:
     st.session_state.last_audio_text = ""
+if "last_image_url" not in st.session_state:
+    st.session_state.last_image_url = None
 
 # CSS styles
 st.markdown("""
@@ -163,7 +165,7 @@ if st.session_state.uploaded_files:
         if f.type.startswith("image/"):
             st.image(f)
 
-# Wikipedia query
+# Wikipedia query logic
 if user_input and (not st.session_state.messages or st.session_state.messages[-1][1] != user_input):
     st.session_state.messages.append(("user", user_input))
     with st.spinner("Buddy is thinking..."):
@@ -185,7 +187,7 @@ if user_input and (not st.session_state.messages or st.session_state.messages[-1
 
     st.session_state.messages.append(("bot", summary))
     st.session_state.last_audio_text = summary
-    st.rerun()  # ✅ Fixed here
+    st.session_state.last_image_url = image_url  # Save image persistently
 
 # Display chat
 for role, text in st.session_state.messages:
@@ -193,8 +195,8 @@ for role, text in st.session_state.messages:
         st.markdown(f"<div class='chat-bubble user-bubble'>{text}</div>", unsafe_allow_html=True)
     else:
         st.markdown(f"<div class='chat-bubble bot-bubble typewriter'>{text}</div>", unsafe_allow_html=True)
-        if 'image_url' in locals() and image_url:
-            st.image(image_url, width=300)
+        if st.session_state.last_image_url:
+            st.image(st.session_state.last_image_url, width=300)
 
 # Play TTS
 if st.session_state.last_audio_text:
