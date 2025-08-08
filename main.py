@@ -110,6 +110,39 @@ body {
     display: none;
 }
 
+/* Crazy reveal animation */
+@keyframes crazyReveal {
+    0% {
+        transform: scale(1) rotate(0deg);
+        box-shadow: 0 0 0px orange;
+        filter: drop-shadow(0 0 0px orange);
+    }
+    25% {
+        transform: scale(1.1) rotate(5deg);
+        box-shadow: 0 0 20px orange;
+        filter: drop-shadow(0 0 10px orange);
+    }
+    50% {
+        transform: scale(1.15) rotate(-5deg);
+        box-shadow: 0 0 40px orange;
+        filter: drop-shadow(0 0 20px orange);
+    }
+    75% {
+        transform: scale(1.1) rotate(5deg);
+        box-shadow: 0 0 20px orange;
+        filter: drop-shadow(0 0 10px orange);
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+        box-shadow: 0 0 0px orange;
+        filter: drop-shadow(0 0 0px orange);
+    }
+}
+.crazy-reveal {
+    animation: crazyReveal 3s ease-in-out forwards;
+    border-radius: 12px;
+}
+
 /* Responsive */
 @media only screen and (max-width: 600px) {
     .chat-bubble {
@@ -175,10 +208,7 @@ with col1:
     user_input = st.text_input("Ask something...", placeholder="Type your question and press Enter...", key="input_text")
 
 with col2:
-    # Hidden file uploader
     uploaded_files = st.file_uploader("", accept_multiple_files=True, type=["png", "jpg", "jpeg", "pdf", "txt"], key="file-uploader")
-
-    # Plus sign label that triggers file uploader click
     st.markdown("""
     <label for="file-uploader" id="upload-label" title="Upload files or images">+</label>
     """, unsafe_allow_html=True)
@@ -222,26 +252,35 @@ if user_input:
             image_url = None
 
     st.session_state.messages.append(("bot", summary))
-    st.markdown(f"<div class='chat-bubble bot-bubble typewriter'>{summary}</div>", unsafe_allow_html=True)
 
-    if image_url:
-        st.image(image_url, width=300)
-
-    # Voice output
-    tts = gTTS(text=summary, lang='en')
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
-        tts.save(tmp_file.name)
-        audio_bytes = open(tmp_file.name, "rb").read()
-        audio_base64 = base64.b64encode(audio_bytes).decode()
-        st.markdown(f"""
-            <audio autoplay>
-                <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-            </audio>
-        """, unsafe_allow_html=True)
-
-# --- Display chat history ---
-for role, text in st.session_state.messages:
+# --- Display chat history with animation on last bot message ---
+for i, (role, text) in enumerate(st.session_state.messages):
     if role == "user":
         st.markdown(f"<div class='chat-bubble user-bubble'>{text}</div>", unsafe_allow_html=True)
     else:
-        st.markdown(f"<div class='chat-bubble bot-bubble typewriter'>{text}</div>", unsafe_allow_html=True)
+        # Add crazy-reveal only to last bot message to animate it
+        crazy_class = ""
+        # Find last bot message index:
+        last_bot_index = max(idx for idx, (r, _) in enumerate(st.session_state.messages) if r == "bot")
+        if i == last_bot_index:
+            crazy_class = "crazy-reveal typewriter"
+        else:
+            crazy_class = "bot-bubble"
+        st.markdown(f"<div class='chat-bubble {crazy_class}'>{text}</div>", unsafe_allow_html=True)
+
+        # Show image only for last bot message if exists
+        if i == last_bot_index and 'image_url' in locals() and image_url:
+            st.image(image_url, width=300)
+
+        # Play voice only for last bot message
+        if i == last_bot_index:
+            tts = gTTS(text=text, lang='en')
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
+                tts.save(tmp_file.name)
+                audio_bytes = open(tmp_file.name, "rb").read()
+                audio_base64 = base64.b64encode(audio_bytes).decode()
+                st.markdown(f"""
+                    <audio autoplay>
+                        <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                    </audio>
+                """, unsafe_allow_html=True)
