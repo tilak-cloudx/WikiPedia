@@ -6,7 +6,7 @@ import base64
 
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
-# CSS for floating emojis + gradient background
+# ===== CSS for floating emojis, gradient background, and chat icons =====
 st.markdown("""
     <style>
     /* Pastel animated gradient background */
@@ -22,7 +22,7 @@ st.markdown("""
         100% { background-position: 0% 50%; }
     }
 
-    /* Floating container */
+    /* Floating emoji container */
     .floating-bg {
         position: fixed;
         top: 0;
@@ -33,17 +33,44 @@ st.markdown("""
         overflow: hidden;
         z-index: 0;
     }
-
     .emoji {
         position: absolute;
         bottom: -50px;
         animation: floatUp 12s linear infinite;
         opacity: 0.9;
     }
-
     @keyframes floatUp {
         0% { transform: translateY(0) rotate(0deg); opacity: 1; }
         100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
+    }
+
+    /* Chat input wrapper for icons */
+    .chat-input-wrapper {
+        position: relative;
+        width: 100%;
+        z-index: 1;
+    }
+    .chat-icons {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        gap: 6px;
+    }
+    .icon-btn {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        color: #555;
+        padding: 4px;
+    }
+    .icon-btn:hover {
+        color: black;
+    }
+    input[type="file"] {
+        display: none;
     }
 
     /* Footer with strong white glow */
@@ -76,24 +103,33 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Title
+# ===== Title =====
 st.markdown("<h1 style='text-align:center; position: relative; z-index: 1;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
 
-# Chat input
+# ===== Chat input with icons =====
+st.markdown('<div class="chat-input-wrapper">', unsafe_allow_html=True)
 user_input = st.text_input(
     "Ask something...",
     key="chat_input",
     label_visibility="collapsed",
     placeholder="Type your question and press Enter..."
 )
+st.markdown("""
+    <div class="chat-icons">
+        <button class="icon-btn" onclick="alert('🎤 Listening...')">🎤</button>
+        <label for="file-upload" class="icon-btn">➕</label>
+        <input id="file-upload" type="file" accept=".jpg,.jpeg,.png,.txt,.pdf">
+    </div>
+""", unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
-# Process query
+# ===== Process query =====
 if user_input.strip():
     try:
         summary = wikipedia.summary(user_input, sentences=2)
         st.write(f"**🤖 Bot:** {summary}")
 
-        # Generate TTS
+        # Text-to-Speech
         tts = gTTS(text=summary, lang='en', tld='co.in')
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
             tts.save(tmp_file.name)
@@ -112,7 +148,7 @@ if user_input.strip():
     except wikipedia.exceptions.PageError:
         st.error("Sorry, I couldn't find anything on Wikipedia for that topic.")
 
-# Footer
+# ===== Footer =====
 st.markdown("""
     <div class="footer">
         Made with ❤️ by <b>Likhiii</b>
