@@ -1,7 +1,6 @@
 import streamlit as st
 from io import BytesIO
 from PIL import Image
-import base64
 
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
@@ -32,9 +31,6 @@ st.markdown(
     .icon-btn:hover {
         background: #3d3f48;
     }
-    .hidden-upload {
-        display: none;
-    }
     </style>
     """,
     unsafe_allow_html=True
@@ -46,13 +42,19 @@ st.markdown("<p style='text-align:center;'>Ask anything, talk it out 🎤, or ad
 # --- Chat Input Row ---
 st.markdown('<div class="chat-input-row">', unsafe_allow_html=True)
 
-# Textbox
-user_input = st.text_input("", key="chat_input", label_visibility="collapsed", placeholder="Type your question...", label="Chat", help="Ask me something about Wikipedia")
+# Textbox (fixed: no duplicate label)
+user_input = st.text_input(
+    "",
+    key="chat_input",
+    label_visibility="collapsed",
+    placeholder="Type your question...",
+    help="Ask me something about Wikipedia"
+)
 
 # Mic Button
 st.markdown('<div class="icon-btn" onclick="alert(\'Listening...\')">🎤</div>', unsafe_allow_html=True)
 
-# Plus Button (File Upload Trigger)
+# Plus Button (hidden file uploader)
 uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png", "txt", "pdf"], key="file_upload", label_visibility="collapsed")
 plus_icon_html = """
 <script>
