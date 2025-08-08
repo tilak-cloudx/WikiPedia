@@ -2,14 +2,11 @@ import streamlit as st
 import wikipedia
 import requests
 import base64
-import os
 
-# -------------------------
-# CONFIG
-# -------------------------
+# ------------------ CONFIG ------------------
 ELEVEN_API_KEY = "sk_389dc307b469d3156f8ee173c2bc1b4a9b6be512c3a2618d"
 VOICE_ID = "Xb7hH8MSUJpSbSDYk0k2"
-# -------------------------
+# ---------------------------------------------
 
 st.set_page_config(page_title="Wikipedia Chatbot", page_icon="📚", layout="centered")
 
@@ -47,7 +44,7 @@ st.markdown("""
 
 st.markdown("<h1 style='text-align:center;'>📚 Wikipedia Chatbot</h1>", unsafe_allow_html=True)
 
-# Wrap input + icons
+# Wrap the input and icons together
 st.markdown('<div class="chat-input-wrapper">', unsafe_allow_html=True)
 user_input = st.text_input(
     "Ask something...",
@@ -64,7 +61,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# ElevenLabs TTS function
+# Function to speak text via ElevenLabs
 def speak_text(text):
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}"
     headers = {
@@ -91,14 +88,18 @@ def speak_text(text):
         """
         st.markdown(audio_html, unsafe_allow_html=True)
     else:
-        st.error("❌ Failed to generate speech from ElevenLabs.")
+        st.error(f"❌ ElevenLabs Error {response.status_code}")
+        try:
+            st.write(response.json())  # show exact error
+        except:
+            st.write(response.text)
 
-# On enter, get wiki and speak
+# If Enter is pressed and input is not empty
 if user_input.strip():
     try:
         summary = wikipedia.summary(user_input, sentences=2)
         st.write(f"**🤖 Bot:** {summary}")
-        speak_text(summary)
+        speak_text(summary)  # Speak automatically
     except wikipedia.exceptions.DisambiguationError as e:
         st.error(f"Your query was too broad. Try one of these: {e.options[:5]}")
     except wikipedia.exceptions.PageError:
