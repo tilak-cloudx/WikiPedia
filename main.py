@@ -7,13 +7,13 @@ import time
 
 st.set_page_config(page_title="Cute Wikipedia Chatbot", page_icon="📚", layout="centered")
 
-# --- SESSION STATE ---
+# --- Session state ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "music_on" not in st.session_state:
     st.session_state.music_on = False
 
-# --- CSS STYLES ---
+# --- CSS for background, petals & chat style ---
 st.markdown("""
 <style>
 body {
@@ -25,6 +25,21 @@ body {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
+}
+
+/* Sakura petals */
+.petal {
+    position: fixed;
+    top: -10px;
+    background: pink;
+    border-radius: 150% 0 150% 0;
+    opacity: 0.8;
+    animation: fall linear infinite;
+    z-index: 9999;
+}
+@keyframes fall {
+    0% { transform: translateY(0) rotate(0deg); }
+    100% { transform: translateY(110vh) rotate(360deg); }
 }
 
 /* Chat bubbles */
@@ -61,36 +76,29 @@ body {
     from {opacity: 0; transform: translateY(5px);}
     to {opacity: 1; transform: translateY(0);}
 }
-
-/* Falling sakura petals */
-.petal {
-    position: fixed;
-    top: -10px;
-    background: pink;
-    border-radius: 150% 0 150% 0;
-    opacity: 0.8;
-    pointer-events: none;
-    animation: fall linear infinite;
-}
-@keyframes fall {
-    0% { transform: translateY(-10px) rotate(0deg); }
-    100% { transform: translateY(110vh) rotate(360deg); }
-}
 </style>
 """, unsafe_allow_html=True)
 
-# --- PETALS GENERATOR ---
-petals_html = ""
-import random
-for i in range(20):
-    left = random.randint(0, 100)
-    size = random.randint(8, 15)
-    duration = random.randint(10, 20)
-    delay = random.randint(0, 15)
-    petals_html += f'<div class="petal" style="left:{left}%; width:{size}px; height:{size}px; animation-duration:{duration}s; animation-delay:{delay}s;"></div>'
+# --- Create multiple petals ---
+petals_html = "".join([
+    f'<div class="petal" style="left:{i*10}%; width:10px; height:10px; animation-duration:{4+i%5}s; animation-delay:{i%3}s;"></div>'
+    for i in range(10)
+])
 st.markdown(petals_html, unsafe_allow_html=True)
 
-# --- FUNCTIONS ---
+# --- Music toggle ---
+if st.button("🎶 Toggle Music"):
+    st.session_state.music_on = not st.session_state.music_on
+
+if st.session_state.music_on:
+    music_html = """
+        <audio autoplay loop>
+            <source src="https://www.bensound.com/bensound-music/bensound-sunny.mp3" type="audio/mp3">
+        </audio>
+    """
+    st.markdown(music_html, unsafe_allow_html=True)
+
+# --- Function to display chat bubbles ---
 def display_message(role, text):
     if role == "user":
         st.markdown(f"""
@@ -107,23 +115,19 @@ def display_message(role, text):
         </div>
         """, unsafe_allow_html=True)
 
-# --- TITLE ---
+# --- Title ---
 st.markdown("<h1 style='text-align:center;'>📚 Cute Wikipedia Chatbot</h1>", unsafe_allow_html=True)
 
-# --- MUSIC TOGGLE ---
-if st.button("🎶 Toggle Music"):
-    st.session_state.music_on = not st.session_state.music_on
-if st.session_state.music_on:
-    st.audio("https://www.bensound.com/bensound-music/bensound-sunny.mp3", autoplay=True)
-
-# --- USER INPUT ---
+# --- User Input ---
 user_input = st.text_input("Ask something...", placeholder="Type your question and press Enter...")
 
-# --- CHAT LOGIC ---
+# --- When user submits ---
 if user_input:
+    # Save & display user message
     st.session_state.messages.append(("user", user_input))
     display_message("user", user_input)
 
+    # Bot "typing"
     with st.spinner("Bot is typing..."):
         time.sleep(1)
         try:
@@ -133,6 +137,7 @@ if user_input:
         except wikipedia.exceptions.PageError:
             summary = "Sorry, I couldn't find anything on Wikipedia for that topic."
 
+    # Add bot message to history
     st.session_state.messages.append(("bot", summary))
     display_message("bot", summary)
 
@@ -149,6 +154,6 @@ if user_input:
         """
         st.markdown(audio_html, unsafe_allow_html=True)
 
-# --- DISPLAY HISTORY ---
+# --- Display chat history ---
 for role, text in st.session_state.messages:
     display_message(role, text)
