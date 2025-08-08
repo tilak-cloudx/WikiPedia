@@ -4,9 +4,7 @@ from gtts import gTTS
 import tempfile
 import base64
 import time
-import random
 
-# --- Page config ---
 st.set_page_config(page_title="Ask Meh Anything Buddy...", page_icon="📚", layout="centered")
 
 # --- Sidebar ---
@@ -14,19 +12,16 @@ with st.sidebar:
     st.markdown("<h2>💖 About Us</h2>", unsafe_allow_html=True)
     st.write("""
     Welcome to **Ask Meh Anything Buddy...**!  
-    Your cute Wikipedia-powered chatbot with voice, images, music, and petals 🌸.  
-    Now with a vintage newspaper vibe 📰.
+    I'm your friendly bot that answers your questions from Wikipedia in the most adorable way possible 💕  
+    You can listen to my answers, see images, and enjoy falling sakura petals 🌸.
     """)
-
     st.markdown("<h2>📌 User Guidance</h2>", unsafe_allow_html=True)
     st.write("""
     1. Type your question in the box.  
     2. Press **Enter** to ask.  
-    3. Enjoy the petals 🌸, music 🎶, and newspaper-style background.  
-    4. Toggle music from the button.  
-    5. Relax and enjoy 💫.
+    3. Enjoy the petals, music 🎶, and images.  
+    4. Toggle music on/off from the button.  
     """)
-
     st.markdown("---")
     st.markdown("Made with ❤️ using Streamlit & Wikipedia API")
 
@@ -35,23 +30,38 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "music_on" not in st.session_state:
     st.session_state.music_on = False
-if "new_bot_message" not in st.session_state:
-    st.session_state.new_bot_message = False
 
-# --- CSS for background & animations ---
+# --- CSS for background, petals, chat bubbles ---
 st.markdown("""
 <style>
-body, .stApp {
-    background-color: #fdf6e3 !important;
-    background-image: url('https://www.transparenttextures.com/patterns/newsprint.png') !important;
-    color: #222 !important;
-    font-family: 'Times New Roman', serif !important;
-    overflow-x: hidden;
+/* Animated gaming newspaper background */
+body {
+    background: black;
+}
+[data-testid="stAppViewContainer"] {
+    background: url('https://www.transparenttextures.com/patterns/newspaper.png'), black;
+    animation: scrollBg 30s linear infinite;
+}
+@keyframes scrollBg {
+    from { background-position: 0 0; }
+    to { background-position: 100% 100%; }
 }
 
-/* Sidebar styling */
-section[data-testid="stSidebar"] {
-    background-color: #f8f5e1 !important;
+/* Glitching text background effect */
+@keyframes glitch {
+    0% { clip-path: inset(0 0 0 0); }
+    20% { clip-path: inset(10% 0 85% 0); }
+    40% { clip-path: inset(80% 0 5% 0); }
+    60% { clip-path: inset(30% 0 50% 0); }
+    80% { clip-path: inset(60% 0 30% 0); }
+    100% { clip-path: inset(0 0 0 0); }
+}
+.glitch {
+    font-size: 60px;
+    font-weight: bold;
+    text-align: center;
+    color: white;
+    animation: glitch 2s infinite;
 }
 
 /* Sakura petals */
@@ -61,9 +71,7 @@ section[data-testid="stSidebar"] {
     background: pink;
     border-radius: 150% 0 150% 0;
     opacity: 0.8;
-    animation-name: fall;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
+    animation: fall linear infinite;
     z-index: 9999;
 }
 @keyframes fall {
@@ -74,54 +82,37 @@ section[data-testid="stSidebar"] {
 /* Chat bubbles */
 .chat-bubble {
     padding: 10px 15px;
-    border-radius: 10px;
+    border-radius: 20px;
     margin: 8px 0;
     max-width: 80%;
     display: inline-block;
-    word-wrap: break-word;
 }
 .user-bubble {
-    background-color: #fce4ec;
-    color: #222;
-    align-self: flex-end;
+    background-color: #ffe4ec;
+    color: #333;
 }
 .bot-bubble {
-    background-color: #fff3e0;
-    color: #222;
-    font-family: 'Courier New', monospace;
-    white-space: pre-wrap;
-    align-self: flex-start;
+    background-color: #e4f0ff;
+    color: #333;
 }
-
-/* Typewriter animation */
-@keyframes typing {
-    from { width: 0 }
-    to { width: 100% }
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 8px;
 }
-.typewriter {
-    overflow: hidden;
-    border-right: .15em solid orange;
-    white-space: nowrap;
-    animation: typing 3s steps(40, end);
-}
-.chat-container {
+.chat-row {
     display: flex;
-    flex-direction: column;
+    align-items: flex-start;
 }
-
-/* Hide Streamlit footer */
-footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# --- Create petals with random positions, sizes and durations ---
-petals_html = ""
-for i in range(15):
-    left = random.randint(0, 100)
-    size = random.randint(8, 18)
-    duration = random.uniform(4, 8)
-    delay = random.uniform(0, 5)
-    petals_html += f'<div class="petal" style="left:{left}%; width:{size}px; height:{size}px; animation-duration:{duration}s; animation-delay:{delay}s;"></div>'
+# --- Petals ---
+petals_html = "".join([
+    f'<div class="petal" style="left:{i*10}%; width:10px; height:10px; animation-duration:{4+i%5}s; animation-delay:{i%3}s;"></div>'
+    for i in range(10)
+])
 st.markdown(petals_html, unsafe_allow_html=True)
 
 # --- Music toggle ---
@@ -129,74 +120,71 @@ if st.button("🎶 Toggle Music"):
     st.session_state.music_on = not st.session_state.music_on
 
 if st.session_state.music_on:
-    st.markdown("""
+    music_html = """
         <audio autoplay loop>
             <source src="https://www.bensound.com/bensound-music/bensound-sunny.mp3" type="audio/mp3">
         </audio>
-    """, unsafe_allow_html=True)
+    """
+    st.markdown(music_html, unsafe_allow_html=True)
 
-# --- Display message ---
-def display_message(role, text, animate=False):
-    cls = "user-bubble" if role == "user" else "bot-bubble"
-    typewriter_class = "typewriter" if animate else ""
-    st.markdown(f"""
-    <div class="chat-bubble {cls} {typewriter_class}">{text}</div>
-    """, unsafe_allow_html=True)
+# --- Chat bubble function ---
+def display_message(role, text):
+    if role == "user":
+        st.markdown(f"""
+        <div class="chat-row" style="justify-content: flex-end;">
+            <div class="chat-bubble user-bubble">{text}</div>
+            <img src="https://i.ibb.co/znz7tbn/user.png" class="avatar">
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div class="chat-row">
+            <img src="https://i.ibb.co/XZ7j5ML/robot.png" class="avatar">
+            <div class="chat-bubble bot-bubble">{text}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # --- Title ---
-st.markdown("<h1 style='text-align:center;'>📚 Ask Meh Anything Buddy...</h1>", unsafe_allow_html=True)
+st.markdown('<div class="glitch">📚 Ask Meh Anything Buddy...</div>', unsafe_allow_html=True)
 
-# --- User Input ---
+# --- User input ---
 user_input = st.text_input("Ask something...", key="input_text", placeholder="Type your question and press Enter...")
 
-# --- When user submits ---
 if user_input:
     st.session_state.messages.append(("user", user_input))
     display_message("user", user_input)
 
-    with st.spinner("Buddy is thinking..."):
+    with st.spinner("Bot is typing..."):
         time.sleep(1)
         try:
             page = wikipedia.page(user_input)
             summary = page.summary[:500] + "..."
-            image_url = None
-            for img in page.images:
-                if img.lower().endswith((".jpg", ".jpeg", ".png")) and "svg" not in img.lower():
-                    image_url = img
-                    break
+            image_url = next((img for img in page.images if img.lower().endswith((".jpg", ".jpeg", ".png")) and "svg" not in img.lower()), None)
         except wikipedia.exceptions.DisambiguationError as e:
-            summary = f"Too many results! Try: {', '.join(e.options[:5])}"
+            summary = f"Your query was too broad. Try: {', '.join(e.options[:5])}"
             image_url = None
         except wikipedia.exceptions.PageError:
-            summary = "Sorry buddy, I couldn't find anything for that."
+            summary = "Sorry, I couldn't find anything on Wikipedia for that topic."
             image_url = None
 
     st.session_state.messages.append(("bot", summary))
-    st.session_state.new_bot_message = True
+    display_message("bot", summary)
 
-    # Show image if available
     if image_url:
         st.image(image_url, width=300)
 
-    # Voice output
-    tts = gTTS(text=summary, lang='en')
+    tts = gTTS(text=summary, lang='en', tld='co.in')
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
         tts.save(tmp_file.name)
         audio_bytes = open(tmp_file.name, "rb").read()
         audio_base64 = base64.b64encode(audio_bytes).decode()
-        st.markdown(f"""
+        audio_html = f"""
             <audio autoplay>
                 <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
             </audio>
-        """, unsafe_allow_html=True)
+        """
+        st.markdown(audio_html, unsafe_allow_html=True)
 
-# --- Display chat history ---
-st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-for i, (role, text) in enumerate(st.session_state.messages):
-    # Animate only the latest bot message
-    animate = (role == "bot" and i == len(st.session_state.messages) - 1 and st.session_state.new_bot_message)
-    display_message(role, text, animate=animate)
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Reset animation flag after displaying
-st.session_state.new_bot_message = False
+# --- Display history ---
+for role, text in st.session_state.messages:
+    display_message(role, text)
