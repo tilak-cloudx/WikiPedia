@@ -5,7 +5,7 @@ import tempfile
 import base64
 import time
 
-st.set_page_config(page_title="Cute Wikipedia Chatbot", page_icon="📚", layout="centered")
+st.set_page_config(page_title="Ask Meh Anything Buddy..", page_icon="📚", layout="centered")
 
 # --- Sidebar ---
 with st.sidebar:
