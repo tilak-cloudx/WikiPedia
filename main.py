@@ -28,7 +28,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("Made with ❤️ using Streamlit & Wikipedia API")
 
-# Initialize session state
+# Session states
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "music_on" not in st.session_state:
@@ -38,7 +38,7 @@ if "uploaded_files" not in st.session_state:
 if "last_audio_text" not in st.session_state:
     st.session_state.last_audio_text = ""
 
-# CSS Styles + hidden file uploader + label + petals
+# CSS styles
 st.markdown("""
 <style>
 body {
@@ -118,14 +118,14 @@ img {
 </style>
 """, unsafe_allow_html=True)
 
-# Petals animation HTML
+# Petals animation
 petals_html = "".join([
     f'<div class="petal" style="left:{random.randint(0,100)}%; width:10px; height:10px; animation-duration:{4+i%5}s; animation-delay:{i%3}s;"></div>'
     for i in range(10)
 ])
 st.markdown(petals_html, unsafe_allow_html=True)
 
-# Music toggle button
+# Music toggle
 if st.button("🎶 Toggle Music"):
     st.session_state.music_on = not st.session_state.music_on
 
@@ -139,7 +139,7 @@ if st.session_state.music_on:
 # Title
 st.markdown("<h1 style='text-align:center;'>📚 Ask Meh Anything Buddy...</h1>", unsafe_allow_html=True)
 
-# Input + file uploader in columns
+# Input + uploader
 col1, col2 = st.columns([0.85, 0.15])
 with col1:
     user_input = st.text_input("Ask something...", placeholder="Type your question and press Enter...", key="input_text")
@@ -147,7 +147,7 @@ with col2:
     uploaded_files = st.file_uploader("", accept_multiple_files=True, type=["png","jpg","jpeg","pdf","txt"], key="file-uploader", label_visibility="collapsed")
     st.markdown('<label for="file-uploader" id="upload-label" title="Upload files or images">+</label>', unsafe_allow_html=True)
 
-# Handle file uploads and store in session state
+# Handle uploads
 if uploaded_files:
     if not isinstance(uploaded_files, list):
         uploaded_files = [uploaded_files]
@@ -155,7 +155,7 @@ if uploaded_files:
         if f not in st.session_state.uploaded_files:
             st.session_state.uploaded_files.append(f)
 
-# Show uploaded files list + images
+# Show uploaded files
 if st.session_state.uploaded_files:
     st.markdown("### Uploaded files:")
     for f in st.session_state.uploaded_files:
@@ -163,7 +163,7 @@ if st.session_state.uploaded_files:
         if f.type.startswith("image/"):
             st.image(f)
 
-# Handle user input - Wikipedia query
+# Wikipedia query
 if user_input and (not st.session_state.messages or st.session_state.messages[-1][1] != user_input):
     st.session_state.messages.append(("user", user_input))
     with st.spinner("Buddy is thinking..."):
@@ -185,9 +185,9 @@ if user_input and (not st.session_state.messages or st.session_state.messages[-1
 
     st.session_state.messages.append(("bot", summary))
     st.session_state.last_audio_text = summary
-    st.experimental_rerun()
+    st.rerun()  # ✅ Fixed here
 
-# Show chat bubbles
+# Display chat
 for role, text in st.session_state.messages:
     if role == "user":
         st.markdown(f"<div class='chat-bubble user-bubble'>{text}</div>", unsafe_allow_html=True)
@@ -196,7 +196,7 @@ for role, text in st.session_state.messages:
         if 'image_url' in locals() and image_url:
             st.image(image_url, width=300)
 
-# Play TTS audio once per bot reply
+# Play TTS
 if st.session_state.last_audio_text:
     tts = gTTS(text=st.session_state.last_audio_text, lang='en')
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
